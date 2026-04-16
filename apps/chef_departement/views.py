@@ -104,16 +104,16 @@ def dossiers(request):
         'f': {'q':q,'annee':annee,'specialite':spe,'statut':statut},
     })
 
-
 @login_required
 @chef_requis
 def action_dossier(request, pk):
-    dept    = _dept(request)
+    dept = _dept(request)
     dossier = get_object_or_404(
         DossierSoutenance, pk=pk,
         etudiant__specialite__departement=dept,
         statut__in=['en_instruction', 'depot_final_soumis'],
     )
+    
     if request.method == 'POST':
         action, motif = request.POST.get('action'), request.POST.get('motif','').strip()
 
@@ -122,6 +122,7 @@ def action_dossier(request, pk):
                 # Dépôt final validé : fin du processus pour l'étudiant
                 dossier.statut = DossierSoutenance.STATUT_ARCHIVE
                 dossier.save()
+                
                 if dossier.etudiant.user:
                     Notification.envoyer(
                         dossier.etudiant.user,
@@ -132,18 +133,20 @@ def action_dossier(request, pk):
                         "pour une inscription dans une nouvelle année académique.",
                         Notification.TYPE_SUCCES,
                     )
+                
+                # Notification à la bibliothèque (Correction des f-strings multi-lignes ici)
+                theme_texte = dossier.proposition.theme[:100] if dossier.proposition else '—'
                 for biblio in User.objects.filter(role='bibliotheque'):
                     Notification.envoyer(
                         biblio,
                         f"Nouveau mémoire à indexer — {dossier.etudiant.nom} {dossier.etudiant.prenom}",
-                        f"Étudiant : {dossier.etudiant.prenom} {dossier.etudiant.nom}
-"
-                        f"Spécialité : {dossier.etudiant.specialite}
-"
-                        f"Thème : {dossier.proposition.theme[:100] if dossier.proposition else '—'}",
+                        f"Étudiant : {dossier.etudiant.prenom} {dossier.etudiant.nom} | "
+                        f"Spécialité : {dossier.etudiant.specialite} | "
+                        f"Thème : {theme_texte}",
                         Notification.TYPE_INFO, '/bibliotheque/memoires/',
                     )
                 messages.success(request, "Dépôt final archivé. Bibliothèque notifiée.")
+            
             else:
                 dossier.statut = DossierSoutenance.STATUT_VALIDE_CHEF
                 dossier.save()
@@ -161,24 +164,30 @@ def action_dossier(request, pk):
         elif action == 'rejeter' and motif:
             if dossier.statut == 'depot_final_soumis':
                 dossier.statut = DossierSoutenance.STATUT_CORRECTIONS
-                dossier.motif_rejet = motif; dossier.save()
+                dossier.motif_rejet = motif
+                dossier.save()
                 if dossier.etudiant.user:
-                    Notification.envoyer(dossier.etudiant.user,
+                    Notification.envoyer(
+                        dossier.etudiant.user,
                         "Dépôt final rejeté — corrections requises",
-                        f"Motif : {motif}
-Corrigez et re-déposez votre document final.",
-                        Notification.TYPE_REJET, '/etudiant/deposer-dossier/')
+                        f"Motif : {motif}. Corrigez et re-déposez votre document final.",
+                        Notification.TYPE_REJET, '/etudiant/deposer-dossier/'
+                    )
                 messages.warning(request, "Dépôt final rejeté.")
             else:
                 dossier.statut = DossierSoutenance.STATUT_REJETE_CHEF
-                dossier.motif_rejet = motif; dossier.save()
+                dossier.motif_rejet = motif
+                dossier.save()
                 if dossier.etudiant.user:
-                    Notification.envoyer(dossier.etudiant.user, "Dossier rejeté",
-                        f"Motif : {motif}", Notification.TYPE_REJET, '/etudiant/deposer-dossier/')
+                    Notification.envoyer(
+                        dossier.etudiant.user, 
+                        "Dossier rejeté",
+                        f"Motif : {motif}", 
+                        Notification.TYPE_REJET, '/etudiant/deposer-dossier/'
+                    )
                 messages.warning(request, "Dossier rejeté.")
 
     return redirect('chef:dossiers')
-
 # ── INSTRUIRE (jury + calendrier) ─────────────────────────
 @login_required
 @chef_requis
