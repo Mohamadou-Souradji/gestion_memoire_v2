@@ -9,13 +9,18 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', config('SECRET_KEY', default=''))
+# --- SÉCURITÉ ---
+SECRET_KEY = os.environ.get('SECRET_KEY', config('SECRET_KEY', default='unsafe-dev-key'))
 
-if not SECRET_KEY:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("La SECRET_KEY est absente des variables d'environnement Render.")
-    DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# Gestion dynamique des hôtes autorisés pour Render
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# --- APPLICATIONS ---
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -34,9 +39,10 @@ INSTALLED_APPS = [
     'apps.bibliotheque',
 ]
 
+# --- MIDDLEWARE ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Pour les fichiers statiques sur Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -66,49 +72,60 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
-
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1').split(',')
-# Remplace les lignes 67-71 par :
+# --- BASE DE DONNÉES ---
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
+        default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         ssl_require=True
     )
 }
 
+# --- AUTHENTICATION ---
 AUTH_USER_MODEL = 'authentication.User'
 LOGIN_URL           = '/auth/connexion/'
 LOGIN_REDIRECT_URL  = '/'
 LOGOUT_REDIRECT_URL = '/auth/connexion/'
 
+# --- PARAMÈTRES ESCEP ---
 OTP_VALIDITY_MINUTES = 10
 AI_DETECTION_THRESHOLD = config('AI_DETECTION_THRESHOLD', default=70, cast=int)
 
-# ── Email ─────────────────────────────────────────────────────────────────────
+# --- EMAIL ---
 EMAIL_BACKEND       = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST          = config('EMAIL_HOST',    default='smtp.gmail.com')
 EMAIL_PORT          = config('EMAIL_PORT',    default=587, cast=int)
 EMAIL_USE_TLS       = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER     = config('EMAIL_HOST_USER',     default='')
+EMAIL_HOST_USER     = config('EMAIL_HOST_USER',      default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default='ESCEP Niger <noreply@escep.ne>')
 
-# ── Fichiers ──────────────────────────────────────────────────────────────────
+# --- FICHIERS STATIQUES ET MEDIA ---
 STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL  = '/media/'
-MEDIA_ROOT = config('MEDIA_ROOT', default=str(BASE_DIR / 'media'))
+MEDIA_ROOT = BASE_DIR / 'media'
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800
-FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
+# Cloudinary pour la production (Stockage des PDFs des mémoires)
+CLOUDINARY_STORAGE_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
+if CLOUDINARY_STORAGE_NAME:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': CLOUDINARY_STORAGE_NAME,
+        'API_KEY':    config('CLOUDINARY_API_KEY', default=''),
+        'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
+    }
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    if 'cloudinary_storage' not in INSTALLED_APPS:
+        INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
 
-# ── Internationalisation ──────────────────────────────────────────────────────
+# --- CSRF ---
+if not DEBUG:
+    CSRF_TRUSTED_ORIGINS = [f"https://{h.strip()}" for h in ALLOWED_HOSTS if h.strip()]
+
+# --- INTERNATIONALISATION ---
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE     = 'Africa/Niamey'
 USE_I18N = True
@@ -122,41 +139,3 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PRODUCTION (Render / serveur)
-# ─────────────────────────────────────────────────────────────────────────────
-import os
-import dj_database_url as _dj_db
-
-# Base de données PostgreSQL via DATABASE_URL (Render)
-_db_url = config('DATABASE_URL', default='')
-if _db_url:
-    DATABASES['default'] = _dj_db.config(
-        default=_db_url, conn_max_age=600, ssl_require=True
-    )
-
-# Fichiers statiques — WhiteNoise
-if not DEBUG:
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
-        MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
-# CSRF — domaines autorisés
-_hosts = config('ALLOWED_HOSTS', default='')
-if _hosts and not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [f"https://{h.strip()}" for h in _hosts.split(',') if h.strip()]
-
-# Cloudinary pour les fichiers media (PDFs, images uploadés)
-_cloudinary_name = config('CLOUDINARY_CLOUD_NAME', default='')
-if _cloudinary_name:
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': _cloudinary_name,
-        'API_KEY':    config('CLOUDINARY_API_KEY', default=''),
-        'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
-    }
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    if 'cloudinary_storage' not in INSTALLED_APPS:
-        INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
