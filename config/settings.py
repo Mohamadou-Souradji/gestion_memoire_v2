@@ -9,8 +9,12 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='unsafe-dev-key')
-DEBUG       = config('DEBUG', default=True, cast=bool)
+SECRET_KEY = os.environ.get('SECRET_KEY', config('SECRET_KEY', default=''))
+
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("La SECRET_KEY est absente des variables d'environnement Render.")
+    DEBUG = config('DEBUG', default=True, cast=bool)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
