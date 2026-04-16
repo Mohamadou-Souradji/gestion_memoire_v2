@@ -1,0 +1,132 @@
+{% extends "etudiant/base_etudiant.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block titre_page %}Mon espace étudiant{% endblock %}
+{% block contenu_etudiant %}
+
+{% if not etudiant %}
+<div class="alerte warning">
+  <i class="fas fa-triangle-exclamation"></i>
+  Votre fiche étudiant n'est pas encore liée.
+  <a href="{% url 'etudiant:verifier_matricule' %}" class="btn btn-jaune btn-sm" style="margin-left:10px;">
+    <i class="fas fa-link"></i> Vérifier mon matricule
+  </a>
+</div>
+{% else %}
+
+<!-- Profil étudiant -->
+<div class="carte" style="border-left:3px solid var(--jaune);margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="background:var(--bleu);color:#fff;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;flex-shrink:0;">
+      {{ etudiant.prenom|first }}{{ etudiant.nom|first }}
+    </div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:700;color:var(--bleu);">{{ etudiant.prenom }} {{ etudiant.nom }}</div>
+      <div style="font-size:.83rem;color:var(--gris);margin-top:2px;">
+        <i class="fas fa-id-badge fa-fw"></i> {{ etudiant.matricule }}
+        &nbsp;|&nbsp;
+        <i class="fas fa-graduation-cap fa-fw"></i> {{ etudiant.specialite }}
+        &nbsp;|&nbsp;
+        <i class="fas fa-calendar fa-fw"></i> {{ etudiant.annee_academique }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats rapides -->
+<div class="grille-stats" style="margin-bottom:18px;">
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#fef9c3;"><i class="fas fa-lightbulb" style="color:var(--alerte)"></i></div>
+    <div><div class="stat-valeur">{{ propositions.count }}</div><div class="stat-libelle">Propositions</div></div>
+  </div>
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#dbeafe;"><i class="fas fa-folder" style="color:var(--bleu)"></i></div>
+    <div><div class="stat-valeur">{{ dossiers.count }}</div><div class="stat-libelle">Dossiers déposés</div></div>
+  </div>
+  {% if programmation %}
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#ede9fe;"><i class="fas fa-calendar-check" style="color:#6d28d9"></i></div>
+    <div><div class="stat-valeur" style="font-size:1rem;">{{ programmation.date_soutenance }}</div>
+      <div class="stat-libelle">Soutenance</div></div>
+  </div>
+  {% endif %}
+  {% if pv %}
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#dcfce7;"><i class="fas fa-star" style="color:var(--succes)"></i></div>
+    <div><div class="stat-valeur">{{ pv.note }}/20</div><div class="stat-libelle">{{ pv.get_mention_display }}</div></div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Soutenance programmée -->
+{% if programmation %}
+<div class="carte" style="border-left:3px solid #6d28d9;margin-bottom:16px;">
+  <div class="carte-titre"><i class="fas fa-calendar-check"></i> Soutenance programmée</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;font-size:.88rem;">
+    <div><i class="fas fa-calendar fa-fw" style="color:var(--bleu)"></i> <strong>{{ programmation.date_soutenance }}</strong></div>
+    <div><i class="fas fa-clock fa-fw" style="color:var(--bleu)"></i> {{ programmation.heure_debut }} – {{ programmation.heure_fin }}</div>
+    <div><i class="fas fa-door-open fa-fw" style="color:var(--bleu)"></i> {{ programmation.salle }}</div>
+    <div><i class="fas fa-laptop fa-fw" style="color:var(--bleu)"></i> {{ programmation.get_mode_display }}</div>
+  </div>
+  {% if programmation.lien_visio %}
+  <a href="{{ programmation.lien_visio }}" target="_blank" class="btn btn-primary btn-sm" style="margin-top:12px;">
+    <i class="fas fa-video"></i> Rejoindre la visio
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- PV de soutenance + lien dépôt final -->
+{% if pv %}
+<div class="carte" style="border-left:3px solid var(--succes);margin-bottom:16px;">
+  <div class="carte-titre"><i class="fas fa-file-signature"></i> Résultat de soutenance</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;font-size:.88rem;margin-bottom:12px;">
+    <div><strong>Note :</strong> {{ pv.note }}/20</div>
+    <div><strong>Mention :</strong> {{ pv.get_mention_display }}</div>
+    <div><strong>Décision :</strong> <span class="badge-statut badge-{{ pv.decision }}">{{ pv.get_decision_display }}</span></div>
+  </div>
+  {% if pv.observations %}
+  <div style="padding:10px;background:var(--gris-clair);border-radius:6px;font-size:.85rem;margin-bottom:12px;">
+    <strong><i class="fas fa-comment-dots"></i> Observations :</strong><br>{{ pv.observations }}
+  </div>
+  {% endif %}
+  {% if dossier_actif and dossier_actif.statut in 'soutenu,corrections,depot_final_soumis' %}
+  {% if dossier_actif.statut == 'depot_final_soumis' %}
+  <div class="alerte info"><i class="fas fa-clock"></i> Document final soumis — en attente de validation du chef.</div>
+  {% else %}
+  <a href="{% url 'etudiant:deposer_dossier' %}" class="btn btn-primary">
+    <i class="fas fa-upload"></i> Déposer le document final
+  </a>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Propositions -->
+{% if propositions %}
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-lightbulb"></i> Mes propositions de thème</div>
+  <div class="tableau-wrap">
+    <table class="tableau">
+      <thead><tr><th>Thème</th><th>Promotion</th><th>Entreprise</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for prop in propositions %}
+        <tr>
+          <td>{{ prop.theme|truncatechars:60 }}
+            {% if prop.motif_rejet %}
+            <br><small style="color:var(--danger)"><i class="fas fa-circle-xmark"></i> {{ prop.motif_rejet|truncatechars:50 }}</small>
+            {% endif %}
+          </td>
+          <td>{{ prop.promotion|default:"—" }}</td>
+          <td>{{ prop.entreprise }}</td>
+          <td><span class="badge-statut badge-{{ prop.statut }}">{{ prop.get_statut_display }}</span></td>
+          <td style="font-size:.78rem;white-space:nowrap;">{{ prop.date_soumission|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: escep_db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: escep_db
+      POSTGRES_USER: escep_user
+      POSTGRES_PASSWORD: escep_pass_2024
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U escep_user -d escep_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    build: .
+    container_name: escep_web
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py makemigrations authentication &&
+             python manage.py makemigrations etudiant &&
+             python manage.py makemigrations chef_departement &&
+             python manage.py makemigrations directeur_etudes &&
+             python manage.py makemigrations direction_generale &&
+             python manage.py makemigrations jury &&
+             python manage.py makemigrations bibliotheque &&
+             python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput --clear &&
+             python manage.py charger_donnees_test &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/code
+      - media_data:/code/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
+  media_data:

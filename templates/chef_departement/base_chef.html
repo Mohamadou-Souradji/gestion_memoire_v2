@@ -1,0 +1,21 @@
+{% extends "shared/base.html" %}
+{% block sidebar_nav %}
+<div class="sidebar-section">Principal</div>
+<a href="{% url 'chef:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}>
+  <i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span></a>
+<a href="{% url 'chef:propositions' %}" {% if 'proposition' in request.resolver_match.url_name %}class="active"{% endif %}>
+  <i class="fas fa-lightbulb fa-fw icone"></i><span>Propositions thèmes</span>
+  {% if nb_notifs_prop > 0 %}<span class="badge-notif">{{ nb_notifs_prop }}</span>{% endif %}</a>
+<a href="{% url 'chef:dossiers' %}" {% if request.resolver_match.url_name == 'dossiers' %}class="active"{% endif %}>
+  <i class="fas fa-folder-open fa-fw icone"></i><span>Dossiers soutenance</span></a>
+<a href="{% url 'chef:instruire' %}" {% if 'instruire' in request.resolver_match.url_name or request.resolver_match.url_name == 'proposer_jury' %}class="active"{% endif %}>
+  <i class="fas fa-gavel fa-fw icone"></i><span>Instruire dossiers</span></a>
+<div class="sidebar-section">Gestion</div>
+<a href="{% url 'chef:jurys' %}" {% if 'jury' in request.resolver_match.url_name and request.resolver_match.url_name != 'proposer_jury' %}class="active"{% endif %}>
+  <i class="fas fa-users fa-fw icone"></i><span>Mes jurys</span></a>
+<a href="{% url 'chef:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}>
+  <i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>
+  {% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
+{% endblock %}
+{% block url_notifs %}{% url 'chef:notifications' %}{% endblock %}
+{% block contenu %}{% block contenu_chef %}{% endblock %}{% endblock %}

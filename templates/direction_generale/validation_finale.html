@@ -1,0 +1,96 @@
+{% extends "direction_generale/base_direction_generale.html" %}
+{% block titre %}Validation finale{% endblock %}
+{% block titre_page %}Validation finale des soutenances{% endblock %}
+{% block contenu_dg %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  <span style="font-size:.85rem;color:var(--gris);">{{ propositions.count }} proposition(s)</span>
+  <form method="post" action="{% url 'dg:valider_tout' %}"
+        onsubmit="return confirm('Valider TOUTES les propositions ? Toutes les parties seront notifiées.')">
+    {% csrf_token %}<button type="submit" class="btn btn-succes btn-sm"><i class="fas fa-stamp"></i> Valider tout</button>
+  </form>
+</div>
+
+{% include "shared/barre_filtres.html" with specialites=specialites %}
+
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-stamp"></i> Propositions validées par le DE</div>
+  {% if propositions %}
+  <div class="tableau-wrap">
+    <table class="tableau">
+      <thead><tr>
+        <th>Étudiant</th><th>Spé.</th><th>Thème</th>
+        <th>Composition du jury</th><th>Calendrier</th><th>Chef</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for p in propositions %}
+        <tr>
+          <td><strong>{{ p.dossier.etudiant.nom }} {{ p.dossier.etudiant.prenom }}</strong><br>
+            <small>{{ p.dossier.etudiant.annee_academique }}</small></td>
+          <td><span style="font-size:.77rem;background:#e0f2fe;color:#075985;padding:1px 7px;border-radius:10px;">{{ p.dossier.etudiant.specialite.code }}</span></td>
+          <td style="max-width:160px;font-size:.84rem;">{{ p.dossier.proposition.theme|truncatechars:55|default:"—" }}</td>
+          <td style="font-size:.82rem;min-width:180px;">
+            {% if p.president %}
+            <div style="margin-bottom:4px;">
+              <strong style="color:var(--bleu)">Président :</strong><br>
+              {{ p.president.prenom }} {{ p.president.nom }}
+              <span class="badge-statut" style="background:{% if p.president.statut == 'permanent' %}#dcfce7;color:#14532d{% else %}#fef9c3;color:#854d0e{% endif %};">
+                {{ p.president.get_statut_display }}
+              </span>
+            </div>
+            {% endif %}
+            {% for m in p.membres.all %}{% if m != p.president %}
+            <div style="font-size:.78rem;color:var(--gris);">
+              <i class="fas fa-user fa-fw"></i> {{ m.prenom }} {{ m.nom }} ({{ m.get_statut_display }})
+            </div>
+            {% endif %}{% endfor %}
+          </td>
+          <td style="font-size:.79rem;white-space:nowrap;">
+            <i class="fas fa-calendar fa-fw" style="color:var(--bleu)"></i> {{ p.date_proposee }}<br>
+            <i class="fas fa-clock fa-fw" style="color:var(--bleu)"></i> {{ p.heure_debut }}–{{ p.heure_fin }}<br>
+            <i class="fas fa-door-open fa-fw" style="color:var(--bleu)"></i> {{ p.salle }}
+          </td>
+          <td style="font-size:.82rem;">{{ p.chef.get_full_name }}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-succes btn-sm" onclick="prepVal({{ p.id }})"><i class="fas fa-stamp"></i> Valider</button>
+            <button class="btn btn-danger btn-sm" onclick="prepRej({{ p.id }})"><i class="fas fa-xmark"></i></button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--gris);">
+    <i class="fas fa-check-double" style="font-size:2rem;color:var(--succes);display:block;margin-bottom:10px;"></i>
+    Aucune proposition en attente de validation.
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="m-val"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-stamp" style="color:var(--succes)"></i> Valider officiellement</span>
+    <button class="modal-fermer" onclick="fermerModal('m-val')"><i class="fas fa-xmark"></i></button></div>
+  <div class="modal-corps"><p>Valider cette soutenance ? <strong>Toutes les parties seront notifiées automatiquement</strong> (étudiant, chef, DE, membres jury).</p></div>
+  <div class="modal-pied"><button class="btn btn-gris btn-sm" onclick="fermerModal('m-val')">Annuler</button>
+    <form id="f-val" method="post">{% csrf_token %}<input type="hidden" name="action" value="valider">
+      <button type="submit" class="btn btn-succes btn-sm"><i class="fas fa-stamp"></i> Valider</button></form></div>
+</div></div>
+
+<div class="modal-overlay" id="m-rej"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-times-circle" style="color:var(--danger)"></i> Rejeter</span>
+    <button class="modal-fermer" onclick="fermerModal('m-rej')"><i class="fas fa-xmark"></i></button></div>
+  <form id="f-rej" method="post">{% csrf_token %}<input type="hidden" name="action" value="rejeter">
+    <div class="modal-corps"><div class="champ"><label>Motif *</label>
+      <textarea name="motif" rows="3" required placeholder="Motif de refus..."></textarea></div></div>
+    <div class="modal-pied"><button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('m-rej')">Annuler</button>
+      <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-paper-plane"></i> Rejeter</button></div>
+  </form>
+</div></div>
+{% endblock %}
+{% block js_extra %}{% include "shared/js_modaux.html" %}
+<script>
+function prepVal(id){document.getElementById('f-val').action='/dg/validation/'+id+'/action/';ouvrirModal('m-val');}
+function prepRej(id){document.getElementById('f-rej').action='/dg/validation/'+id+'/action/';ouvrirModal('m-rej');}
+</script>
+{% endblock %}

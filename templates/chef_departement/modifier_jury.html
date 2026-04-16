@@ -1,0 +1,31 @@
+{% extends "chef_departement/base_chef.html" %}
+{% block titre %}Modifier jury{% endblock %}
+{% block titre_page %}Modifier — {{ jury.prenom }} {{ jury.nom }}{% endblock %}
+{% block contenu_chef %}
+<div style="max-width:600px;">
+  <div class="section-form">
+    <div class="section-form-titre"><i class="fas fa-pen"></i> Modifier les informations du jury</div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="grille-2">
+        <div class="champ"><label>Nom *</label><input type="text" name="nom" value="{{ jury.nom }}" required></div>
+        <div class="champ"><label>Prénom *</label><input type="text" name="prenom" value="{{ jury.prenom }}" required></div>
+        <div class="champ"><label>E-mail *</label><input type="email" name="email" value="{{ jury.email }}" required></div>
+        <div class="champ"><label>Téléphone *</label><input type="text" name="telephone" value="{{ jury.telephone }}" required></div>
+        <div class="champ"><label>Statut *</label>
+          <select name="statut">
+            <option value="permanent" {% if jury.statut == 'permanent' %}selected{% endif %}>Permanent</option>
+            <option value="vacataire" {% if jury.statut == 'vacataire' %}selected{% endif %}>Vacataire</option>
+          </select></div>
+        <div class="champ"><label>Spécialité(s)</label><input type="text" name="specialite" value="{{ jury.specialite }}"></div>
+      </div>
+      <input type="hidden" name="username_jury" value="{{ jury.user.username|default:'' }}">
+      <input type="hidden" name="password_jury" value="">
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+        <a href="{% url 'chef:jurys' %}" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Retour</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "chef_departement/base_chef.html" %}
+{% block titre %}Ajouter un jury{% endblock %}
+{% block titre_page %}Ajouter un membre de jury{% endblock %}
+{% block contenu_chef %}
+<div style="max-width:600px;">
+  <div class="section-form">
+    <div class="section-form-titre"><i class="fas fa-user-plus"></i> Nouveau membre du jury</div>
+    <p style="font-size:.85rem;color:var(--gris);margin-bottom:18px;">
+      Un compte de connexion sera automatiquement créé pour ce jury.
+    </p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="grille-2">
+        <div class="champ">
+          <label>Nom *</label>
+          <input type="text" name="nom" value="{{ formulaire.nom.value|default:'' }}" required>
+          {% if formulaire.nom.errors %}<p class="erreur">{{ formulaire.nom.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="champ">
+          <label>Prénom *</label>
+          <input type="text" name="prenom" value="{{ formulaire.prenom.value|default:'' }}" required>
+          {% if formulaire.prenom.errors %}<p class="erreur">{{ formulaire.prenom.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="champ">
+        <label>Adresse e-mail *</label>
+        <input type="email" name="email" value="{{ formulaire.email.value|default:'' }}" placeholder="email@exemple.com" required>
+        {% if formulaire.email.errors %}<p class="erreur">{{ formulaire.email.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="grille-2">
+        <div class="champ">
+          <label>Téléphone *</label>
+          <input type="text" name="telephone" value="{{ formulaire.telephone.value|default:'' }}" placeholder="+227 XX XX XX XX" required>
+          {% if formulaire.telephone.errors %}<p class="erreur">{{ formulaire.telephone.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="champ">
+          <label>Statut *</label>
+          <select name="statut" required>
+            <option value="">— Choisir —</option>
+            <option value="permanent" {% if formulaire.statut.value == 'permanent' %}selected{% endif %}>Permanent</option>
+            <option value="vacataire" {% if formulaire.statut.value == 'vacataire' %}selected{% endif %}>Vacataire</option>
+          </select>
+          {% if formulaire.statut.errors %}<p class="erreur">{{ formulaire.statut.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="champ">
+        <label>Spécialité(s) *</label>
+        <input type="text" name="specialite" value="{{ formulaire.specialite.value|default:'' }}" placeholder="Ex : Réseaux, Informatique, Télécommunications">
+        {% if formulaire.specialite.errors %}<p class="erreur">{{ formulaire.specialite.errors.0 }}</p>{% endif %}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Créer</button>
+        <a href="{% url 'chef:jurys' %}" class="btn btn-outline btn-lg"><i class="fas fa-arrow-left"></i> Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

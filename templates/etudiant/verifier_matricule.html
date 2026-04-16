@@ -1,0 +1,31 @@
+{% extends "etudiant/base_etudiant.html" %}
+{% block titre %}Vérification matricule{% endblock %}
+{% block titre_page %}Vérification de mon matricule{% endblock %}
+{% block contenu_etudiant %}
+<div style="max-width:500px;margin:0 auto;">
+  <div class="section-form">
+    <div class="section-form-titre"><i class="fas fa-id-card"></i> Lier votre fiche étudiant</div>
+    <p style="color:var(--gris);margin-bottom:18px;font-size:.9rem;">
+      Saisissez votre numéro de matricule et votre année académique pour retrouver votre fiche dans le système.
+    </p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="champ">
+        <label for="id_matricule"><i class="fas fa-id-badge" style="color:var(--bleu)"></i> Numéro de matricule</label>
+        <input type="text" name="matricule" id="id_matricule" placeholder="Ex : 2021INFO001" required
+               value="{{ formulaire.matricule.value|default:'' }}">
+        {% if formulaire.matricule.errors %}<p class="erreur">{{ formulaire.matricule.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="champ">
+        <label for="id_annee_academique"><i class="fas fa-calendar" style="color:var(--bleu)"></i> Année académique</label>
+        <input type="text" name="annee_academique" id="id_annee_academique" placeholder="Ex : 2024-2025" required
+               value="{{ formulaire.annee_academique.value|default:'' }}">
+        {% if formulaire.annee_academique.errors %}<p class="erreur">{{ formulaire.annee_academique.errors.0 }}</p>{% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-bloc btn-lg" style="margin-top:8px;">
+        <i class="fas fa-search"></i> Vérifier et lier ma fiche
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

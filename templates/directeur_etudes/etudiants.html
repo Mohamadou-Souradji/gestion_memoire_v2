@@ -1,0 +1,89 @@
+{% extends "directeur_etudes/base_directeur_etudes.html" %}
+{% block titre %}Étudiants{% endblock %}
+{% block titre_page %}Gestion des étudiants{% endblock %}
+{% block contenu_directeur %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+  <button class="btn btn-primary" onclick="ouvrirModal('m-ajouter')"><i class="fas fa-user-plus"></i> Ajouter</button>
+</div>
+<form method="get" class="barre-filtres">
+  <div class="champ-filtre" style="flex:2;"><label>Recherche</label><input type="text" name="q" value="{{ f.q }}" placeholder="Nom, prénom, matricule..."></div>
+  <div class="champ-filtre"><label>Département</label><select name="departement"><option value="">Tous</option>{% for d in departements %}<option value="{{ d.code }}" {% if f.departement == d.code %}selected{% endif %}>{{ d.code }}</option>{% endfor %}</select></div>
+  <div class="champ-filtre"><label>Spécialité</label><select name="specialite"><option value="">Toutes</option>{% for s in specialites %}<option value="{{ s.code }}" {% if f.specialite == s.code %}selected{% endif %}>{{ s.code }}</option>{% endfor %}</select></div>
+  <div class="champ-filtre"><label>Année</label><input type="text" name="annee" value="{{ f.annee }}" placeholder="2024-2025" style="width:110px;"></div>
+  <div style="display:flex;gap:6px;align-items:flex-end;"><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrer</button><a href="{% url 'directeur:etudiants' %}" class="btn btn-gris btn-sm"><i class="fas fa-xmark"></i></a></div>
+</form>
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-user-graduate"></i> {{ etudiants.count }} étudiant(s)</div>
+  <div class="tableau-wrap"><table class="tableau">
+    <thead><tr><th>Matricule</th><th>Nom complet</th><th>Spécialité</th><th>Année</th><th>Promotion</th><th>Compte lié</th><th>Actions</th></tr></thead>
+    <tbody>{% for e in etudiants %}
+    <tr>
+      <td><code>{{ e.matricule }}</code></td>
+      <td><strong>{{ e.nom }} {{ e.prenom }}</strong></td>
+      <td><span class="badge-statut" style="background:#e0f2fe;color:#075985;">{{ e.specialite.code }}</span></td>
+      <td>{{ e.annee_academique }}</td>
+      <td>{{ e.promotion }}</td>
+      <td>{% if e.user %}<i class="fas fa-check-circle" style="color:var(--succes)"></i>{% else %}<i class="fas fa-times-circle" style="color:var(--gris)"></i>{% endif %}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" onclick="prepModif({{ e.id }},'{{ e.matricule }}','{{ e.nom|escapejs }}','{{ e.prenom|escapejs }}','{{ e.email|escapejs }}',{{ e.specialite.id }},'{{ e.annee_academique }}','{{ e.promotion|escapejs }}')"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="prepSuppr({{ e.id }},'{{ e.nom }} {{ e.prenom }}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+<!-- Modal Ajouter -->
+<div class="modal-overlay" id="m-ajouter"><div class="modal modal-lg">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-user-plus"></i> Ajouter un étudiant</span><button class="modal-fermer" onclick="fermerModal('m-ajouter')"><i class="fas fa-xmark"></i></button></div>
+  <form method="post" action="{% url 'directeur:creer_etudiant' %}">{% csrf_token %}
+    <div class="modal-corps"><div class="grille-2">
+      <div class="champ"><label>Matricule *</label><input type="text" name="matricule" required placeholder="2024INFO001"></div>
+      <div class="champ"><label>Nom *</label><input type="text" name="nom" required></div>
+      <div class="champ"><label>Prénom *</label><input type="text" name="prenom" required></div>
+      <div class="champ"><label>E-mail</label><input type="email" name="email" placeholder="email@etudiant.escep.ne"></div>
+      <div class="champ"><label>Spécialité *</label><select name="specialite" required><option value="">—</option>{% for s in specialites %}<option value="{{ s.id }}">{{ s.code }} — {{ s.nom }}</option>{% endfor %}</select></div>
+      <div class="champ"><label>Année académique *</label><input type="text" name="annee_academique" value="2024-2025" required></div>
+      <div class="champ" style="grid-column:span 2;"><label>Promotion</label><input type="text" name="promotion" placeholder="Promotion 2025"></div>
+    </div></div>
+    <div class="modal-pied"><button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('m-ajouter')">Annuler</button><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Ajouter</button></div>
+  </form>
+</div></div>
+<!-- Modal Modifier -->
+<div class="modal-overlay" id="m-modif"><div class="modal modal-lg">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-pen"></i> Modifier l'étudiant</span><button class="modal-fermer" onclick="fermerModal('m-modif')"><i class="fas fa-xmark"></i></button></div>
+  <form id="f-modif" method="post">{% csrf_token %}
+    <div class="modal-corps"><div class="grille-2">
+      <div class="champ"><label>Matricule *</label><input type="text" name="matricule" id="mm" required></div>
+      <div class="champ"><label>Nom *</label><input type="text" name="nom" id="mn" required></div>
+      <div class="champ"><label>Prénom *</label><input type="text" name="prenom" id="mp" required></div>
+      <div class="champ"><label>E-mail</label><input type="email" name="email" id="me"></div>
+      <div class="champ"><label>Spécialité *</label><select name="specialite" id="ms" required><option value="">—</option>{% for s in specialites %}<option value="{{ s.id }}">{{ s.code }} — {{ s.nom }}</option>{% endfor %}</select></div>
+      <div class="champ"><label>Année *</label><input type="text" name="annee_academique" id="ma" required></div>
+      <div class="champ" style="grid-column:span 2;"><label>Promotion</label><input type="text" name="promotion" id="mpr"></div>
+    </div></div>
+    <div class="modal-pied"><button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('m-modif')">Annuler</button><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Enregistrer</button></div>
+  </form>
+</div></div>
+<!-- Modal Supprimer -->
+<div class="modal-overlay" id="m-suppr"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-trash" style="color:var(--danger)"></i> Supprimer</span><button class="modal-fermer" onclick="fermerModal('m-suppr')"><i class="fas fa-xmark"></i></button></div>
+  <div class="modal-corps"><p>Supprimer <strong id="suppr-nom"></strong> ? Irréversible.</p></div>
+  <div class="modal-pied"><button class="btn btn-gris btn-sm" onclick="fermerModal('m-suppr')">Annuler</button>
+    <form id="f-suppr" method="post">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button></form></div>
+</div></div>
+{% endblock %}
+{% block js_extra %}{% include "shared/js_modaux.html" %}
+<script>
+function prepModif(id,mat,nom,prenom,email,spe,annee,promo){
+  document.getElementById('mm').value=mat; document.getElementById('mn').value=nom;
+  document.getElementById('mp').value=prenom; document.getElementById('me').value=email;
+  document.getElementById('ms').value=spe; document.getElementById('ma').value=annee;
+  document.getElementById('mpr').value=promo;
+  document.getElementById('f-modif').action='/directeur/etudiants/'+id+'/modifier/';
+  ouvrirModal('m-modif');
+}
+function prepSuppr(id,nom){
+  document.getElementById('suppr-nom').textContent=nom;
+  document.getElementById('f-suppr').action='/directeur/etudiants/'+id+'/supprimer/';
+  ouvrirModal('m-suppr');
+}
+</script>{% endblock %}

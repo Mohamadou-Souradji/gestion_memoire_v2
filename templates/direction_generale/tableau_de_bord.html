@@ -1,0 +1,47 @@
+{% extends "direction_generale/base_direction_generale.html" %}
+{% block titre %}DG — Tableau de bord{% endblock %}
+{% block titre_page %}Direction générale{% endblock %}
+{% block contenu_dg %}
+
+<div style="margin-bottom:6px;font-size:.8rem;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Propositions de jury</div>
+<div class="grille-stats" style="margin-bottom:20px;">
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#fef9c3;"><i class="fas fa-hourglass-half" style="color:var(--alerte)"></i></div>
+    <div><div class="stat-valeur">{{ nb_a_valider }}</div><div class="stat-libelle">À valider</div></div>
+  </div>
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#dcfce7;"><i class="fas fa-stamp" style="color:var(--succes)"></i></div>
+    <div><div class="stat-valeur">{{ nb_valide_dg }}</div><div class="stat-libelle">Validées</div></div>
+  </div>
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#fee2e2;"><i class="fas fa-times-circle" style="color:var(--danger)"></i></div>
+    <div><div class="stat-valeur">{{ nb_rejete_dg }}</div><div class="stat-libelle">Rejetées</div></div>
+  </div>
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#e0f2fe;"><i class="fas fa-check-double" style="color:var(--info)"></i></div>
+    <div><div class="stat-valeur">{{ nb_total_traites }}</div><div class="stat-libelle">Traitées au total</div></div>
+  </div>
+</div>
+
+<div style="margin-bottom:6px;font-size:.8rem;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.04em;">Soutenances</div>
+<div class="grille-stats" style="margin-bottom:20px;">
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#ede9fe;"><i class="fas fa-calendar-check" style="color:#6d28d9"></i></div>
+    <div><div class="stat-valeur">{{ nb_programme }}</div><div class="stat-libelle">Programmées</div></div>
+  </div>
+  <div class="stat-carte">
+    <div class="stat-icone" style="background:#dcfce7;"><i class="fas fa-graduation-cap" style="color:var(--succes)"></i></div>
+    <div><div class="stat-valeur">{{ nb_soutenus }}</div><div class="stat-libelle">Soutenues</div></div>
+  </div>
+</div>
+
+{% if nb_a_valider > 0 %}
+<div class="alerte info">
+  <i class="fas fa-circle-info"></i>
+  <strong>{{ nb_a_valider }}</strong> proposition(s) en attente de validation finale.
+  <a href="{% url 'dg:validation_finale' %}" style="color:var(--bleu);font-weight:600;margin-left:8px;">
+    Valider <i class="fas fa-arrow-right"></i>
+  </a>
+</div>
+{% endif %}
+{% endblock %}

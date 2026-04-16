@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="{% static 'images/logo_escep.png' %}">
+  <title>Vérification — ESCEP Niger</title>
+  <link rel="stylesheet" href="{% static 'css/escep.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="page-auth">
+  <div class="carte-auth">
+
+    <div class="auth-logo">
+      <img src="{% static 'images/logo_escep.png' %}" alt="ESCEP Niger">
+    </div>
+
+    <h1 class="auth-titre"><i class="fas fa-shield-halved"></i> Vérification</h1>
+    <p class="auth-sous-titre">
+      Bonjour <strong>{{ nom_affiche }}</strong>,<br>
+      un code a été envoyé à <strong>{{ email_masque }}</strong>
+    </p>
+
+    {% for msg in messages %}
+    <div class="alerte {{ msg.tags }}">
+      {% if msg.tags == 'success' %}<i class="fas fa-check-circle"></i>
+      {% elif msg.tags == 'error' %}<i class="fas fa-exclamation-circle"></i>
+      {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+      {{ msg }}
+    </div>
+    {% endfor %}
+
+    <form method="post" id="form-otp" novalidate>
+      {% csrf_token %}
+      <div class="champ champ-otp">
+        <label for="id_code" style="text-align:center;display:block;">
+          <i class="fas fa-hashtag" style="color:var(--bleu)"></i> Code de vérification
+        </label>
+        <input type="text" name="code" id="id_code"
+          placeholder="000000" maxlength="6" minlength="6"
+          inputmode="numeric" pattern="[0-9]{6}"
+          autocomplete="one-time-code" autofocus required>
+        {% if formulaire.code.errors %}<p class="erreur" style="text-align:center;"><i class="fas fa-circle-xmark"></i> {{ formulaire.code.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div style="text-align:center;margin:.5rem 0 1rem;font-size:.82rem;color:var(--gris);">
+        <i class="fas fa-clock"></i> Code valable <strong id="compte-rebours">{{ duree }}:00</strong>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-bloc btn-lg">
+        <i class="fas fa-circle-check"></i> Valider
+      </button>
+    </form>
+
+    <form method="post" style="margin-top:10px;">
+      {% csrf_token %}
+      <input type="hidden" name="renvoyer" value="1">
+      <button type="submit" class="btn btn-outline btn-bloc">
+        <i class="fas fa-rotate-right"></i> Renvoyer un code
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:16px;font-size:.82rem;">
+      <a href="{% url 'auth:connexion' %}" style="color:var(--bleu);text-decoration:none;">
+        <i class="fas fa-arrow-left"></i> Retour à la connexion
+      </a>
+    </p>
+  </div>
+</div>
+<script>
+// Auto-submit quand 6 chiffres saisis
+document.getElementById('id_code').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  if (this.value.length === 6) document.getElementById('form-otp').submit();
+});
+// Compte à rebours
+(function() {
+  let s = {{ duree }} * 60;
+  const el = document.getElementById('compte-rebours');
+  const tick = () => {
+    if (!s) { el.textContent = 'Expiré'; el.style.color = 'var(--danger)'; return; }
+    const m = String(Math.floor(s/60)).padStart(2,'0');
+    const sec = String(s%60).padStart(2,'0');
+    el.textContent = m+':'+sec;
+    if (s <= 60) el.style.color = 'var(--danger)';
+    s--; setTimeout(tick, 1000);
+  };
+  tick();
+})();
+</script>
+</body>
+</html>

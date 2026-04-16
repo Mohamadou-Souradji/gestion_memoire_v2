@@ -1,0 +1,29 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+*.py[cod]
+
+# Environnement
+.env
+.env.*
+!.env.example
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+*.log
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml

@@ -1,0 +1,58 @@
+{% extends "etudiant/base_etudiant.html" %}
+{% block titre %}Bibliothèque{% endblock %}
+{% block titre_page %}Bibliothèque numérique ESCEP{% endblock %}
+{% block contenu_etudiant %}
+
+<form method="get" class="barre-filtres" style="margin-bottom:16px;">
+  <div class="champ-filtre" style="flex:2;"><label><i class="fas fa-search"></i> Recherche</label>
+    <input type="text" name="q" value="{{ f.q }}" placeholder="Titre, auteur, encadreur..."></div>
+  <div class="champ-filtre"><label>Spécialité</label>
+    <select name="specialite">
+      <option value="">Toutes</option>
+      {% for s in specialites %}<option value="{{ s }}" {% if f.specialite == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select></div>
+  <div class="champ-filtre"><label>Année académique</label>
+    <input type="text" name="annee" value="{{ f.annee }}" placeholder="2024-2025" style="width:110px;"></div>
+  <div class="champ-filtre"><label>Promotion</label>
+    <input type="text" name="promotion" value="{{ f.promotion }}" placeholder="Promotion 2025" style="width:130px;"></div>
+  <div style="display:flex;gap:6px;align-items:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    <a href="{% url 'etudiant:bibliotheque' %}" class="btn btn-gris btn-sm"><i class="fas fa-xmark"></i></a>
+  </div>
+</form>
+
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-book-open"></i> {{ total }} document(s) disponible(s)</div>
+  {% if documents %}
+  <div class="tableau-wrap">
+    <table class="tableau">
+      <thead><tr><th>Auteur</th><th>Titre</th><th>Spécialité</th><th>Promotion</th><th>Année</th><th>Note</th><th>PDF</th></tr></thead>
+      <tbody>
+        {% for doc in documents %}
+        <tr>
+          <td><strong>{{ doc.auteur }}</strong><br><small>Enc. : {{ doc.encadreur }}</small></td>
+          <td style="max-width:200px;" title="{{ doc.titre }}">{{ doc.titre|truncatechars:60 }}</td>
+          <td><span style="font-size:.78rem;background:#e0f2fe;color:#075985;padding:2px 7px;border-radius:10px;">{{ doc.specialite }}</span></td>
+          <td style="font-size:.82rem;">{{ doc.promotion }}</td>
+          <td style="font-size:.82rem;white-space:nowrap;">{{ doc.annee_academique }}</td>
+          <td>{% if doc.note %}<strong>{{ doc.note }}/20</strong><br><small>{{ doc.mention }}</small>{% else %}—{% endif %}</td>
+          <td>
+            {% if doc.dossier.memoire_final_pdf %}
+            <a href="{{ doc.dossier.memoire_final_pdf.url }}" target="_blank" class="btn btn-primary btn-sm">
+              <i class="fas fa-download"></i> PDF
+            </a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--gris);">
+    <i class="fas fa-search" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>
+    Aucun document trouvé.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

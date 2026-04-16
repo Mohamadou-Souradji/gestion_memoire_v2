@@ -1,0 +1,177 @@
+{% extends "shared/base.html" %}
+{% load static %}
+
+{% block title %}Mon Espace — ESCEP Niger{% endblock %}
+{% block page_title %}Mon Espace Étudiant{% endblock %}
+
+{% block sidebar_nav %}
+<div class="sidebar-section-title">Navigation</div>
+<a href="{% url 'etudiant:dashboard' %}" class="active"><span class="icon"><i class="fas fa-home"></i></span><span>Tableau de bord</span></a>
+<a href="{% url 'etudiant:proposer_theme' %}"><span class="icon"><i class="fas fa-lightbulb"></i></span><span>Proposer un thème</span></a>
+<a href="{% url 'etudiant:deposer_dossier' %}"><span class="icon"><i class="fas fa-file-upload"></i></span><span>Déposer un dossier</span></a>
+<a href="{% url 'etudiant:notifications' %}">
+  <span class="icon"><i class="fas fa-bell"></i></span><span>Notifications</span>
+  {% with cnt=request.user.notifications.unread.count %}{% if cnt > 0 %}<span class="badge-notif">{{ cnt }}</span>{% endif %}{% endwith %}
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-graduation-cap"></i> Mon espace étudiant</h1>
+  {% if profil %}
+  <p>{{ profil.matricule }} — {{ profil.specialite }} {{ profil.niveau }} — {{ profil.annee_academique }}</p>
+  {% endif %}
+</div>
+
+{% if not profil %}
+<div class="alert-escep warning"><i class="fas fa-exclamation-triangle"></i> Votre profil étudiant est incomplet. Contactez la scolarité.</div>
+{% else %}
+
+<!-- STATS -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+  <div class="stat-card">
+    <div class="stat-number">{{ propositions.count }}</div>
+    <div class="stat-label"><i class="fas fa-lightbulb"></i> Propositions</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-number">{{ dossiers.count }}</div>
+    <div class="stat-label"><i class="fas fa-folder"></i> Dossiers déposés</div>
+  </div>
+  {% if programmation %}
+  <div class="stat-card success">
+    <div class="stat-number"><i class="fas fa-calendar-check" style="font-size:1.5rem;"></i></div>
+    <div class="stat-label">Soutenance programmée</div>
+  </div>
+  {% endif %}
+  {% if pv %}
+  <div class="stat-card {% if pv.decision == 'admis' %}success{% else %}yellow{% endif %}">
+    <div class="stat-number">{{ pv.note }}/20</div>
+    <div class="stat-label">{{ pv.get_mention_display }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- PROPOSITIONS -->
+  <div class="card">
+    <div class="card-header-escep"><i class="fas fa-lightbulb"></i> Mes propositions de thème</div>
+    <div class="card-body-escep">
+      {% if propositions %}
+      {% for prop in propositions %}
+      <div style="border-bottom:1px solid #eee;padding:10px 0;">
+        <div style="font-weight:600;font-size:0.88rem;">{{ prop.theme|truncatechars:70 }}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span class="badge-statut {{ prop.statut }}">{{ prop.get_statut_display }}</span>
+          <span style="font-size:0.78rem;color:#888;">{{ prop.date_soumission|date:"d/m/Y" }}</span>
+        </div>
+        {% if prop.motif_rejet %}
+        <div class="alert-escep danger" style="margin-top:6px;padding:6px 10px;font-size:0.8rem;">
+          <i class="fas fa-times-circle"></i> {{ prop.motif_rejet }}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:#888;text-align:center;padding:20px 0;font-size:0.875rem;">
+        <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+        Aucune proposition soumise.
+      </p>
+      {% endif %}
+      <div style="margin-top:14px;">
+        <a href="{% url 'etudiant:proposer_theme' %}" class="btn-escep btn-escep-primary" style="font-size:0.82rem;">
+          <i class="fas fa-plus"></i> Nouvelle proposition
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOSSIERS -->
+  <div class="card">
+    <div class="card-header-escep"><i class="fas fa-folder-open"></i> Mes dossiers de soutenance</div>
+    <div class="card-body-escep">
+      {% if dossiers %}
+      {% for dossier in dossiers %}
+      <div style="border-bottom:1px solid #eee;padding:10px 0;">
+        <div style="font-weight:600;font-size:0.85rem;">Dossier #{{ dossier.id }}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span class="badge-statut {{ dossier.statut }}">{{ dossier.get_statut_display }}</span>
+        </div>
+        {% if dossier.taux_ia is not None %}
+        <div style="margin-top:6px;">
+          <div style="font-size:0.78rem;color:#888;">Taux IA détecté : <strong {% if dossier.taux_ia >= 70 %}style="color:#dc3545"{% endif %}>{{ dossier.taux_ia }}%</strong></div>
+          <div class="ia-gauge">
+            <div class="ia-gauge-fill {% if dossier.taux_ia < 50 %}safe{% elif dossier.taux_ia < 70 %}warning{% else %}danger{% endif %}" style="width:{{ dossier.taux_ia }}%;"></div>
+          </div>
+        </div>
+        {% endif %}
+        {% if dossier.motif_rejet %}
+        <div class="alert-escep danger" style="margin-top:6px;padding:6px 10px;font-size:0.8rem;">
+          <i class="fas fa-times-circle"></i> {{ dossier.motif_rejet }}
+        </div>
+        {% endif %}
+        {% if dossier.statut == 'soutenu' and not dossier.memoire_final_pdf %}
+        <a href="{% url 'etudiant:deposer_final' dossier.id %}" class="btn-escep btn-escep-yellow" style="margin-top:8px;font-size:0.8rem;">
+          <i class="fas fa-upload"></i> Déposer le document final
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:#888;text-align:center;padding:20px 0;font-size:0.875rem;">
+        <i class="fas fa-file-upload" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+        Aucun dossier déposé.
+      </p>
+      <a href="{% url 'etudiant:deposer_dossier' %}" class="btn-escep btn-escep-primary" style="font-size:0.82rem;">
+        <i class="fas fa-plus"></i> Déposer un dossier
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- PROGRAMMATION SOUTENANCE -->
+{% if programmation %}
+<div class="card" style="margin-top:20px;">
+  <div class="card-header-escep" style="background:#198754;"><i class="fas fa-calendar-alt"></i> Ma soutenance programmée</div>
+  <div class="card-body-escep">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+      <div><label>Date</label><div style="font-size:1.1rem;font-weight:700;color:#1A4F8A;">{{ programmation.date_soutenance|date:"d/m/Y" }}</div></div>
+      <div><label>Heure</label><div style="font-size:1.1rem;font-weight:700;color:#1A4F8A;">{{ programmation.heure_debut }} — {{ programmation.heure_fin }}</div></div>
+      <div><label>Salle</label><div style="font-size:1.1rem;font-weight:700;color:#1A4F8A;">{{ programmation.salle }}</div></div>
+      <div><label>Mode</label><div><span class="badge-statut programme">{{ programmation.mode|title }}</span></div></div>
+    </div>
+    {% if programmation.lien_visio %}
+    <div style="margin-top:12px;">
+      <a href="{{ programmation.lien_visio }}" target="_blank" class="btn-escep btn-escep-outline">
+        <i class="fas fa-video"></i> Lien visioconférence
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- PV -->
+{% if pv %}
+<div class="card" style="margin-top:20px;">
+  <div class="card-header-escep" style="background:{% if pv.decision == 'admis' %}#198754{% else %}#856404{% endif %};"><i class="fas fa-scroll"></i> PV de soutenance</div>
+  <div class="card-body-escep">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:14px;">
+      <div><label>Note</label><div style="font-size:1.5rem;font-weight:800;color:#1A4F8A;">{{ pv.note }}/20</div></div>
+      <div><label>Mention</label><div style="font-weight:700;">{{ pv.get_mention_display }}</div></div>
+      <div><label>Décision</label><div><span class="badge-statut {% if pv.decision == 'admis' %}valide{% elif pv.decision == 'admis_corrections' %}en_attente{% else %}rejete{% endif %}">{{ pv.get_decision_display }}</span></div></div>
+    </div>
+    {% if pv.observations %}
+    <div>
+      <label>Observations du jury</label>
+      <div style="background:#f8faff;border-left:3px solid #1A4F8A;padding:12px;border-radius:4px;font-size:0.875rem;">{{ pv.observations }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "shared/base.html" %}
+{% load static %}
+{% block title %}Détail proposition — ESCEP Niger{% endblock %}
+{% block page_title %}Validation de soutenance{% endblock %}
+{% block sidebar_nav %}
+<a href="{% url 'dg:dashboard' %}" ><span class="icon"><i class="fas fa-arrow-left"></i></span><span>Retour</span></a>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-stamp"></i> Autorisation de soutenance</h1>
+</div>
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header-escep"><i class="fas fa-user-graduate"></i> Étudiant</div>
+      <div class="card-body-escep">
+        <p><strong>Nom :</strong> {{ prop.dossier.etudiant.user.get_full_name }}</p>
+        <p><strong>Matricule :</strong> {{ prop.dossier.etudiant.matricule }}</p>
+        <p><strong>Spécialité :</strong> {{ prop.dossier.etudiant.specialite }} {{ prop.dossier.etudiant.niveau }}</p>
+        {% if prop.dossier.proposition %}<p><strong>Thème :</strong> {{ prop.dossier.proposition.theme }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header-escep"><i class="fas fa-calendar"></i> Calendrier proposé</div>
+      <div class="card-body-escep">
+        <p><strong>Date :</strong> {{ prop.date_proposee|date:"l d F Y" }}</p>
+        <p><strong>Heure :</strong> {{ prop.heure_debut }} — {{ prop.heure_fin }}</p>
+        <p><strong>Salle :</strong> {{ prop.salle }}</p>
+        <p><strong>Mode :</strong> {{ prop.get_mode_display }}</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header-escep"><i class="fas fa-users"></i> Composition du jury</div>
+      <div class="card-body-escep" style="padding:0;">
+        <table class="table-escep">
+          <thead><tr><th>Nom</th><th>Spécialité</th><th>Statut</th><th>Rôle</th></tr></thead>
+          <tbody>
+            {% for membre in prop.membres_jury.all %}
+            <tr>
+              <td>{{ membre.prenom }} {{ membre.nom }}</td>
+              <td>{{ membre.specialite }}</td>
+              <td><span class="badge-statut {% if membre.statut == 'permanent' %}valide{% else %}en_attente{% endif %}">{{ membre.statut }}</span></td>
+              <td>{% if prop.president_jury == membre %}<span class="badge-statut programme">Président</span>{% else %}Membre{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-header-escep" style="background:#5c2d91;"><i class="fas fa-stamp"></i> Décision DG</div>
+      <div class="card-body-escep">
+        <form method="post" action="{% url 'dg:valider_proposition' prop.id %}">
+          {% csrf_token %}
+          <div style="margin-bottom:14px;">
+            <label>Motif (si rejet)</label>
+            {{ form.motif }}
+          </div>
+          <input type="hidden" name="action" value="valider">
+          <button type="submit" class="btn-escep btn-escep-primary" style="width:100%;justify-content:center;margin-bottom:10px;" onclick="return confirm('Valider et programmer officiellement ?')">
+            <i class="fas fa-check-circle"></i> Valider & Programmer
+          </button>
+        </form>
+        <form method="post" action="{% url 'dg:valider_proposition' prop.id %}">
+          {% csrf_token %}
+          <div style="margin-bottom:10px;">
+            <label>Motif du rejet *</label>
+            <textarea name="motif" class="form-control" rows="3" placeholder="Raison du rejet..." required></textarea>
+          </div>
+          <input type="hidden" name="action" value="rejeter">
+          <button type="submit" class="btn-escep btn-escep-danger" style="width:100%;justify-content:center;" onclick="return confirm('Rejeter cette proposition ?')">
+            <i class="fas fa-times-circle"></i> Rejeter
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

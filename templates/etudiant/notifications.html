@@ -1,0 +1,35 @@
+{% extends "etudiant/base_etudiant.html" %}
+{% block titre %}Notifications{% endblock %}
+{% block titre_page %}Mes notifications{% endblock %}
+{% block contenu_etudiant %}
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-bell"></i> Toutes mes notifications</div>
+  {% if notifications %}
+    {% for notif in notifications %}
+    <div style="padding:14px;border-radius:8px;margin-bottom:10px;border-left:4px solid
+      {% if notif.type == 'succes' %}var(--succes)
+      {% elif notif.type == 'rejet' %}var(--danger)
+      {% elif notif.type == 'alerte' %}var(--alerte)
+      {% else %}var(--info){% endif %};
+      background:{% if not notif.lue %}#f8faff{% else %}#fff{% endif %};">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <strong>
+          {% if notif.type == 'succes' %}<i class="fas fa-check-circle" style="color:var(--succes)"></i>
+          {% elif notif.type == 'rejet' %}<i class="fas fa-circle-xmark" style="color:var(--danger)"></i>
+          {% elif notif.type == 'alerte' %}<i class="fas fa-triangle-exclamation" style="color:var(--alerte)"></i>
+          {% else %}<i class="fas fa-circle-info" style="color:var(--info)"></i>{% endif %}
+          {{ notif.titre }}
+        </strong>
+        <span style="font-size:.76rem;color:var(--gris);">{{ notif.cree_le|date:"d/m/Y H:i" }}</span>
+      </div>
+      <p style="margin-top:6px;font-size:.88rem;white-space:pre-line;">{{ notif.message }}</p>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;padding:40px;color:var(--gris);">
+      <i class="fas fa-bell-slash" style="font-size:2rem;margin-bottom:12px;display:block;"></i>
+      Aucune notification pour le moment.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

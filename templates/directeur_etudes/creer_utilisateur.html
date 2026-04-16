@@ -1,0 +1,67 @@
+{% extends "directeur_etudes/base_directeur.html" %}
+{% block titre %}Créer un compte{% endblock %}
+{% block titre_page %}Créer un compte utilisateur{% endblock %}
+{% block contenu_directeur %}
+<div style="max-width:600px;">
+  <div class="section-form">
+    <div class="section-form-titre"><i class="fas fa-user-plus"></i> Nouveau compte ESCEP</div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="grille-2">
+        <div class="champ">
+          <label>Prénom *</label>
+          <input type="text" name="first_name" value="{{ formulaire.first_name.value|default:'' }}" required>
+          {% if formulaire.first_name.errors %}<p class="erreur">{{ formulaire.first_name.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="champ">
+          <label>Nom *</label>
+          <input type="text" name="last_name" value="{{ formulaire.last_name.value|default:'' }}" required>
+          {% if formulaire.last_name.errors %}<p class="erreur">{{ formulaire.last_name.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="champ">
+        <label>Identifiant *</label>
+        <input type="text" name="username" value="{{ formulaire.username.value|default:'' }}" placeholder="identifiant_unique" required autocomplete="off">
+        {% if formulaire.username.errors %}<p class="erreur">{{ formulaire.username.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="champ">
+        <label>Adresse e-mail *</label>
+        <input type="email" name="email" value="{{ formulaire.email.value|default:'' }}" placeholder="email@escep.ne" required>
+        {% if formulaire.email.errors %}<p class="erreur">{{ formulaire.email.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="champ">
+        <label>Téléphone</label>
+        <input type="text" name="telephone" value="{{ formulaire.telephone.value|default:'' }}" placeholder="+227 XX XX XX XX">
+      </div>
+      <div class="champ">
+        <label>Rôle *</label>
+        <select name="role" required>
+          {% for val, lib in formulaire.fields.role.choices %}
+          <option value="{{ val }}" {% if formulaire.role.value == val %}selected{% endif %}>{{ lib }}</option>
+          {% endfor %}
+        </select>
+        {% if formulaire.role.errors %}<p class="erreur">{{ formulaire.role.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="grille-2">
+        <div class="champ">
+          <label>Mot de passe *</label>
+          <input type="password" name="mot_de_passe" required autocomplete="new-password">
+          {% if formulaire.mot_de_passe.errors %}<p class="erreur">{{ formulaire.mot_de_passe.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="champ">
+          <label>Confirmation *</label>
+          <input type="password" name="confirmation" required autocomplete="new-password">
+          {% if formulaire.confirmation.errors %}<p class="erreur">{{ formulaire.confirmation.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      {% if formulaire.non_field_errors %}
+      <div class="alerte danger">{% for e in formulaire.non_field_errors %}<i class="fas fa-circle-xmark"></i> {{ e }}{% endfor %}</div>
+      {% endif %}
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Créer le compte</button>
+        <a href="{% url 'directeur:utilisateurs' %}" class="btn btn-outline btn-lg"><i class="fas fa-arrow-left"></i> Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

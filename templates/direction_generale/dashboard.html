@@ -1,0 +1,51 @@
+{% extends "shared/base.html" %}
+{% load static %}
+{% block title %}Direction Générale — ESCEP Niger{% endblock %}
+{% block page_title %}Direction Générale{% endblock %}
+{% block sidebar_nav %}
+<div class="sidebar-section-title">Navigation</div>
+<a href="{% url 'dg:dashboard' %}" class="active"><span class="icon"><i class="fas fa-tachometer-alt"></i></span><span>Tableau de bord</span></a>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-star"></i> Direction Générale</h1>
+  <p>Validation finale des propositions de jury et autorisation de soutenance</p>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+  <div class="stat-card yellow"><div class="stat-number">{{ total_attente }}</div><div class="stat-label">En attente de validation</div></div>
+  <div class="stat-card success"><div class="stat-number">{{ total_valide }}</div><div class="stat-label">Soutenances validées</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header-escep" style="background:#5c2d91;"><i class="fas fa-stamp"></i> Propositions de jury validées par le DE — En attente d'autorisation DG</div>
+  <div class="card-body-escep" style="padding:0;">
+    {% if propositions %}
+    <table class="table-escep">
+      <thead><tr><th>Étudiant</th><th>Spécialité</th><th>Date / Heure</th><th>Salle</th><th>Président jury</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for prop in propositions %}
+        <tr>
+          <td><strong>{{ prop.dossier.etudiant.user.get_full_name }}</strong></td>
+          <td>{{ prop.dossier.etudiant.specialite }} {{ prop.dossier.etudiant.niveau }}</td>
+          <td>{{ prop.date_proposee|date:"d/m/Y" }}<br><small>{{ prop.heure_debut }} — {{ prop.heure_fin }}</small></td>
+          <td>{{ prop.salle }}</td>
+          <td>{% if prop.president_jury %}{{ prop.president_jury.prenom }} {{ prop.president_jury.nom }}{% else %}—{% endif %}</td>
+          <td>
+            <a href="{% url 'dg:voir_proposition' prop.id %}" class="btn-escep btn-escep-outline" style="font-size:0.75rem;padding:5px 10px;">
+              <i class="fas fa-eye"></i> Voir
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding:40px;text-align:center;color:#888;">
+      <i class="fas fa-check-circle" style="font-size:2.5rem;color:#198754;display:block;margin-bottom:12px;"></i>
+      Toutes les propositions ont été traitées
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

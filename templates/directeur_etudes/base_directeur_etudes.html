@@ -1,0 +1,12 @@
+{% extends "shared/base.html" %}
+{% block sidebar_nav %}
+<div class="sidebar-section">Principal</div>
+<a href="{% url 'directeur:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}><i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span></a>
+<a href="{% url 'directeur:propositions' %}" {% if request.resolver_match.url_name == 'propositions' %}class="active"{% endif %}><i class="fas fa-gavel fa-fw icone"></i><span>Propositions jury</span>{% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
+<div class="sidebar-section">Administration</div>
+<a href="{% url 'directeur:etudiants' %}" {% if 'etudiant' in request.resolver_match.url_name %}class="active"{% endif %}><i class="fas fa-user-graduate fa-fw icone"></i><span>Étudiants</span></a>
+<a href="{% url 'directeur:utilisateurs' %}" {% if 'utilisateur' in request.resolver_match.url_name %}class="active"{% endif %}><i class="fas fa-users-cog fa-fw icone"></i><span>Utilisateurs</span></a>
+<a href="{% url 'directeur:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}><i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>{% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
+{% endblock %}
+{% block url_notifs %}{% url 'directeur:notifications' %}{% endblock %}
+{% block contenu %}{% block contenu_directeur %}{% endblock %}{% endblock %}

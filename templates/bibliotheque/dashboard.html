@@ -1,0 +1,44 @@
+{% extends "shared/base.html" %}
+{% load static %}
+{% block title %}Bibliothèque — ESCEP Niger{% endblock %}
+{% block page_title %}Bibliothèque Numérique{% endblock %}
+{% block sidebar_nav %}
+<a href="{% url 'bibliotheque:dashboard' %}" class="active"><span class="icon"><i class="fas fa-home"></i></span><span>Tableau de bord</span></a>
+<a href="{% url 'bibliotheque:catalogue' %}"><span class="icon"><i class="fas fa-search"></i></span><span>Catalogue</span></a>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-book-open"></i> Bibliothèque Numérique ESCEP Niger</h1>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+  <div class="stat-card yellow"><div class="stat-number">{{ docs_en_attente.count }}</div><div class="stat-label">À indexer</div></div>
+  <div class="stat-card success"><div class="stat-number">{{ docs_publies }}</div><div class="stat-label">Publiés</div></div>
+  <div class="stat-card"><div class="stat-number">{{ docs_total }}</div><div class="stat-label">Total</div></div>
+</div>
+<div class="card">
+  <div class="card-header-escep"><i class="fas fa-inbox"></i> Documents à indexer</div>
+  <div class="card-body-escep" style="padding:0;">
+    {% if docs_en_attente %}
+    <table class="table-escep">
+      <thead><tr><th>Étudiant</th><th>Thème</th><th>Spécialité</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for dossier in docs_en_attente %}
+        <tr>
+          <td>{{ dossier.etudiant.user.get_full_name }}</td>
+          <td>{% if dossier.proposition %}{{ dossier.proposition.theme|truncatechars:50 }}{% else %}—{% endif %}</td>
+          <td>{{ dossier.etudiant.specialite }}</td>
+          <td>
+            <a href="{% url 'bibliotheque:indexer' dossier.id %}" class="btn-escep btn-escep-primary" style="font-size:0.78rem;padding:5px 12px;">
+              <i class="fas fa-tags"></i> Indexer
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding:40px;text-align:center;color:#888;"><i class="fas fa-check-circle" style="font-size:2rem;color:#198754;display:block;margin-bottom:8px;"></i>Tous les documents sont indexés</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

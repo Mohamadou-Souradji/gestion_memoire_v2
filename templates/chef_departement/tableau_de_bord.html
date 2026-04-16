@@ -1,0 +1,68 @@
+{% extends "chef_departement/base_chef.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block titre_page %}{% if dept %}{{ dept.nom }}{% else %}Tableau de bord{% endif %}{% endblock %}
+{% block contenu_chef %}
+{% if not dept %}
+<div class="alerte warning"><i class="fas fa-triangle-exclamation"></i> Vous n'êtes associé à aucun département. Contactez le directeur des études.</div>
+{% else %}
+<div class="grille-stats">
+  <div class="stat-carte"><div class="stat-icone" style="background:#fef9c3;"><i class="fas fa-hourglass-half" style="color:var(--alerte);"></i></div>
+    <div><div class="stat-valeur">{{ nb_p }}</div><div class="stat-libelle">Propositions en attente</div></div></div>
+  <div class="stat-carte"><div class="stat-icone" style="background:#dbeafe;"><i class="fas fa-folder-open" style="color:var(--bleu);"></i></div>
+    <div><div class="stat-valeur">{{ nb_d }}</div><div class="stat-libelle">Dossiers à instruire</div></div></div>
+  <div class="stat-carte"><div class="stat-icone" style="background:#dcfce7;"><i class="fas fa-user-graduate" style="color:var(--succes);"></i></div>
+    <div><div class="stat-valeur">{{ nb_e }}</div><div class="stat-libelle">Étudiants</div></div></div>
+  <div class="stat-carte"><div class="stat-icone" style="background:#ede9fe;"><i class="fas fa-users" style="color:#6d28d9;"></i></div>
+    <div><div class="stat-valeur">{{ nb_j }}</div><div class="stat-libelle">Membres jury</div></div></div>
+</div>
+
+{% if propositions %}
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-lightbulb"></i> Propositions récentes
+    <a href="{% url 'chef:propositions' %}" style="margin-left:auto;font-size:.78rem;font-weight:400;color:var(--bleu);">Tout voir <i class="fas fa-arrow-right"></i></a></div>
+  <div class="tableau-wrap"><table class="tableau">
+    <thead><tr><th>Étudiant</th><th>Thème</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for p in propositions %}
+      <tr>
+        <td><strong>{{ p.etudiant.nom }} {{ p.etudiant.prenom }}</strong><br><small>{{ p.etudiant.specialite.code }}</small></td>
+        <td>{{ p.theme|truncatechars:60 }}</td>
+        <td style="font-size:.78rem;white-space:nowrap;">{{ p.date_soumission|date:"d/m/Y" }}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-succes btn-sm" onclick="prepValider({{ p.id }},'{{ p.theme|truncatechars:40|escapejs }}')"><i class="fas fa-check"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="prepRejeter({{ p.id }},'{{ p.theme|truncatechars:40|escapejs }}')"><i class="fas fa-xmark"></i></button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Modaux (mêmes que propositions.html) -->
+<div class="modal-overlay" id="modal-val"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-check-circle" style="color:var(--succes)"></i> Valider</span>
+    <button class="modal-fermer" onclick="fermerModal('modal-val')"><i class="fas fa-xmark"></i></button></div>
+  <div class="modal-corps"><p>Valider : <strong id="val-theme"></strong></p></div>
+  <div class="modal-pied"><button class="btn btn-gris btn-sm" onclick="fermerModal('modal-val')">Annuler</button>
+    <form id="form-val" method="post">{% csrf_token %}<input type="hidden" name="action" value="valider">
+      <button type="submit" class="btn btn-succes btn-sm"><i class="fas fa-check"></i> Valider</button></form></div>
+</div></div>
+<div class="modal-overlay" id="modal-rej"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-times-circle" style="color:var(--danger)"></i> Rejeter</span>
+    <button class="modal-fermer" onclick="fermerModal('modal-rej')"><i class="fas fa-xmark"></i></button></div>
+  <form id="form-rej" method="post">{% csrf_token %}<input type="hidden" name="action" value="rejeter">
+    <div class="modal-corps"><p style="margin-bottom:8px;">Thème : <strong id="rej-theme"></strong></p>
+      <div class="champ"><label>Motif *</label><textarea name="motif" rows="3" required></textarea></div></div>
+    <div class="modal-pied"><button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-rej')">Annuler</button>
+      <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-paper-plane"></i> Rejeter</button></div>
+  </form>
+</div></div>
+{% endblock %}
+{% block js_extra %}{% include "shared/js_modaux.html" %}
+<script>
+function prepValider(id,t){document.getElementById('val-theme').textContent=t;document.getElementById('form-val').action='/chef/propositions/'+id+'/action/';ouvrirModal('modal-val');}
+function prepRejeter(id,t){document.getElementById('rej-theme').textContent=t;document.getElementById('form-rej').action='/chef/propositions/'+id+'/action/';ouvrirModal('modal-rej');}
+</script>
+{% endblock %}

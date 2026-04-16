@@ -1,0 +1,18 @@
+{% comment %}
+Usage: {% include "shared/modal_confirm.html" with id="modal-val" titre="Confirmer" icone="check-circle" couleur="succes" texte="Confirmer ?" form_id="form-val" btn_lib="Valider" btn_class="btn-succes" %}
+{% endcomment %}
+<div class="modal-overlay" id="{{ id }}">
+  <div class="modal">
+    <div class="modal-entete">
+      <span class="modal-titre"><i class="fas fa-{{ icone }}" style="color:var(--{{ couleur }})"></i> {{ titre }}</span>
+      <button class="modal-fermer" onclick="fermerModal('{{ id }}')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-corps"><p>{{ texte }}</p></div>
+    <div class="modal-pied">
+      <button class="btn btn-gris btn-sm" onclick="fermerModal('{{ id }}')">Annuler</button>
+      <form id="{{ form_id }}" method="post" style="display:inline;">{% csrf_token %}{{ form_hidden|safe }}
+        <button type="submit" class="btn {{ btn_class }} btn-sm"><i class="fas fa-{{ icone }}"></i> {{ btn_lib }}</button>
+      </form>
+    </div>
+  </div>
+</div>

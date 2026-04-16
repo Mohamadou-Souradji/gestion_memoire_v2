@@ -1,0 +1,55 @@
+{% extends "shared/base.html" %}
+{% load static %}
+{% block title %}Espace Jury — ESCEP Niger{% endblock %}
+{% block page_title %}Espace Membre du Jury{% endblock %}
+{% block sidebar_nav %}
+<a href="{% url 'jury:dashboard' %}" class="active"><span class="icon"><i class="fas fa-home"></i></span><span>Mes soutenances</span></a>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="fas fa-gavel"></i> Mes soutenances programmées</h1>
+</div>
+{% if soutenances %}
+<div style="display:grid;gap:16px;">
+  {% for item in soutenances %}
+  <div class="card">
+    <div class="card-header-escep">
+      <i class="fas fa-graduation-cap"></i>
+      {{ item.dossier.etudiant.user.get_full_name }}
+      — {{ item.dossier.etudiant.specialite }} {{ item.dossier.etudiant.niveau }}
+      {% if item.is_president %}<span style="margin-left:auto;background:#F5C518;color:#133d6e;padding:2px 10px;border-radius:12px;font-size:0.75rem;">Président du jury</span>{% endif %}
+    </div>
+    <div class="card-body-escep">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:14px;">
+        {% with prog=item.dossier.programmation %}
+        {% if prog %}
+        <div><label>Date</label><div style="font-weight:700;">{{ prog.date_soutenance|date:"d/m/Y" }}</div></div>
+        <div><label>Heure</label><div style="font-weight:700;">{{ prog.heure_debut }}</div></div>
+        <div><label>Salle</label><div style="font-weight:700;">{{ prog.salle }}</div></div>
+        {% endif %}
+        {% endwith %}
+        {% if item.dossier.proposition %}<div><label>Thème</label><div style="font-size:0.85rem;">{{ item.dossier.proposition.theme|truncatechars:80 }}</div></div>{% endif %}
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a href="{% url 'jury:voir_memoire' item.dossier.id %}" class="btn-escep btn-escep-outline">
+          <i class="fas fa-file-pdf"></i> Consulter le mémoire
+        </a>
+        {% if item.is_president %}
+        <a href="{% url 'jury:saisir_pv' item.dossier.id %}" class="btn-escep btn-escep-primary">
+          <i class="fas fa-scroll"></i> Saisir le PV
+        </a>
+        {% else %}
+        <span style="font-size:0.8rem;color:#888;align-self:center;"><i class="fas fa-info-circle"></i> Seul le président peut saisir le PV</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="card-body-escep" style="text-align:center;padding:50px;">
+  <i class="fas fa-calendar-times" style="font-size:3rem;color:#ccc;display:block;margin-bottom:14px;"></i>
+  <p style="color:#888;">Aucune soutenance programmée pour le moment.</p>
+</div></div>
+{% endif %}
+{% endblock %}

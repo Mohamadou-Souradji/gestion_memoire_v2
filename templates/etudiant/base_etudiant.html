@@ -1,0 +1,20 @@
+{% extends "shared/base.html" %}
+{% block sidebar_nav %}
+<div class="sidebar-section">Mon espace</div>
+<a href="{% url 'etudiant:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}>
+  <i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span></a>
+<a href="{% url 'etudiant:verifier_matricule' %}">
+  <i class="fas fa-id-card fa-fw icone"></i><span>Mon matricule</span></a>
+<a href="{% url 'etudiant:proposer_theme' %}" {% if request.resolver_match.url_name == 'proposer_theme' %}class="active"{% endif %}>
+  <i class="fas fa-lightbulb fa-fw icone"></i><span>Proposer un thème</span></a>
+<a href="{% url 'etudiant:deposer_dossier' %}" {% if request.resolver_match.url_name == 'deposer_dossier' %}class="active"{% endif %}>
+  <i class="fas fa-folder-arrow-up fa-fw icone"></i><span>Déposer un dossier</span></a>
+<div class="sidebar-section">Ressources</div>
+<a href="{% url 'etudiant:bibliotheque' %}" {% if request.resolver_match.url_name == 'bibliotheque' %}class="active"{% endif %}>
+  <i class="fas fa-book-open fa-fw icone"></i><span>Bibliothèque</span></a>
+<a href="{% url 'etudiant:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}>
+  <i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>
+  {% if notifications_non_lues > 0 %}<span class="badge-notif">{{ notifications_non_lues }}</span>{% endif %}</a>
+{% endblock %}
+{% block url_notifs %}{% url 'etudiant:notifications' %}{% endblock %}
+{% block contenu %}{% block contenu_etudiant %}{% endblock %}{% endblock %}

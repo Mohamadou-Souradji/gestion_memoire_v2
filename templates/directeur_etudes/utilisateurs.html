@@ -1,0 +1,111 @@
+{% extends "directeur_etudes/base_directeur_etudes.html" %}
+{% block titre %}Utilisateurs{% endblock %}
+{% block titre_page %}Gestion des comptes{% endblock %}
+{% block contenu_directeur %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+  <button class="btn btn-primary" onclick="ouvrirModal('m-creer')"><i class="fas fa-user-plus"></i> Créer un compte</button>
+</div>
+<form method="get" class="barre-filtres">
+  <div class="champ-filtre"><label>Rôle</label>
+    <select name="role"><option value="">Tous</option>
+    {% for val,lib in roles %}<option value="{{ val }}" {% if f.role == val %}selected{% endif %}>{{ lib }}</option>{% endfor %}
+    </select></div>
+  <div style="display:flex;gap:6px;align-items:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i></button>
+    <a href="{% url 'directeur:utilisateurs' %}" class="btn btn-gris btn-sm"><i class="fas fa-xmark"></i></a>
+  </div>
+</form>
+<div class="carte">
+  <div class="carte-titre"><i class="fas fa-users-cog"></i> {{ utilisateurs.count }} compte(s)</div>
+  <div class="tableau-wrap">
+    <table class="tableau">
+      <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Rôle</th><th>Actif</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for u in utilisateurs %}
+        <tr style="{% if not u.is_active %}opacity:.55;{% endif %}">
+          <td><strong>{{ u.get_full_name }}</strong></td>
+          <td><code>{{ u.username }}</code></td>
+          <td>{{ u.email }}</td>
+          <td><span class="badge-statut badge-en_attente">{{ u.get_role_display }}</span></td>
+          <td>
+            {% if u.is_active %}
+              <span style="color:var(--succes);font-size:.82rem;"><i class="fas fa-check-circle"></i> Actif</span>
+            {% else %}
+              <span style="color:var(--danger);font-size:.82rem;"><i class="fas fa-ban"></i> Bloqué</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap;">
+            {% if u.pk != request.user.pk %}
+            <!-- Bloquer/Débloquer -->
+            <form method="post" action="{% url 'directeur:toggle_compte' u.pk %}" style="display:inline;"
+                  onsubmit="return confirm('{% if u.is_active %}Bloquer{% else %}Activer{% endif %} le compte de {{ u.get_full_name }} ?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-succes{% endif %}"
+                      title="{% if u.is_active %}Bloquer{% else %}Activer{% endif %}">
+                <i class="fas {% if u.is_active %}fa-ban{% else %}fa-check{% endif %}"></i>
+              </button>
+            </form>
+            <!-- Supprimer -->
+            <button class="btn btn-danger btn-sm" onclick="prepSupprUser({{ u.pk }},'{{ u.get_full_name|escapejs }}')"
+                    title="Supprimer">
+              <i class="fas fa-trash"></i>
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal créer -->
+<div class="modal-overlay" id="m-creer"><div class="modal modal-lg">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-user-plus"></i> Créer un compte</span>
+    <button class="modal-fermer" onclick="fermerModal('m-creer')"><i class="fas fa-xmark"></i></button></div>
+  <form method="post" action="{% url 'directeur:creer_utilisateur' %}">{% csrf_token %}
+    <div class="modal-corps"><div class="grille-2">
+      <div class="champ"><label>Prénom *</label><input type="text" name="first_name" required></div>
+      <div class="champ"><label>Nom *</label><input type="text" name="last_name" required></div>
+      <div class="champ"><label>Identifiant *</label><input type="text" name="username" required placeholder="identifiant_unique" autocomplete="off"></div>
+      <div class="champ"><label>E-mail *</label><input type="email" name="email" required placeholder="email@escep.ne"></div>
+      <div class="champ"><label>Téléphone</label><input type="text" name="telephone" placeholder="+227 XX XX XX XX"></div>
+      <div class="champ"><label>Rôle *</label>
+        <select name="role" required onchange="toggleDept(this.value)">
+          {% for val,lib in roles %}<option value="{{ val }}">{{ lib }}</option>{% endfor %}
+        </select></div>
+      <div class="champ" id="bloc-dept" style="display:none;grid-column:span 2;">
+        <label>Département (obligatoire si chef) *</label>
+        <select name="departement_id">
+          <option value="">— Choisir —</option>
+          {% for d in departements %}<option value="{{ d.id }}">{{ d.code }} — {{ d.nom }}</option>{% endfor %}
+        </select></div>
+      <div class="champ"><label>Mot de passe *</label><input type="password" name="mot_de_passe" required autocomplete="new-password"></div>
+      <div class="champ"><label>Confirmation *</label><input type="password" name="confirmation" required autocomplete="new-password"></div>
+    </div></div>
+    <div class="modal-pied">
+      <button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('m-creer')">Annuler</button>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Créer</button>
+    </div>
+  </form>
+</div></div>
+
+<!-- Modal supprimer -->
+<div class="modal-overlay" id="m-suppr-u"><div class="modal">
+  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-trash" style="color:var(--danger)"></i> Supprimer</span>
+    <button class="modal-fermer" onclick="fermerModal('m-suppr-u')"><i class="fas fa-xmark"></i></button></div>
+  <div class="modal-corps"><p>Supprimer le compte <strong id="suppr-u-nom"></strong> ? Irréversible.</p></div>
+  <div class="modal-pied">
+    <button class="btn btn-gris btn-sm" onclick="fermerModal('m-suppr-u')">Annuler</button>
+    <form id="f-suppr-u" method="post">{% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
+    </form>
+  </div>
+</div></div>
+{% endblock %}
+{% block js_extra %}{% include "shared/js_modaux.html" %}
+<script>
+function toggleDept(v){document.getElementById('bloc-dept').style.display=(v==='chef_departement'?'block':'none');}
+function prepSupprUser(id,nom){document.getElementById('suppr-u-nom').textContent=nom;document.getElementById('f-suppr-u').action='/directeur/utilisateurs/'+id+'/supprimer/';ouvrirModal('m-suppr-u');}
+</script>
+{% endblock %}
