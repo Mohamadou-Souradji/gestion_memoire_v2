@@ -108,7 +108,8 @@ def dossiers(request):
 @chef_requis
 def action_dossier(request, pk):
     dept = _dept(request)
-    # On récupère le dossier sans filtrer trop strictement le statut au départ
+    # On récupère le dossier sans filtrer trop strictement le statut ici
+    # pour pouvoir gérer à la fois l'instruction et le dépôt final.
     dossier = get_object_or_404(
         DossierSoutenance, pk=pk,
         etudiant__specialite__departement=dept
@@ -119,71 +120,77 @@ def action_dossier(request, pk):
         motif = request.POST.get('motif', '').strip()
 
         if action == 'valider':
-            # --- CAS A : C'EST LE DÉPÔT FINAL (Fin de parcours) ---
+            # --- CAS DU DÉPÔT FINAL (Après soutenance) ---
             if dossier.statut == 'depot_final_soumis':
-                dossier.statut = 'archive'  # On force le passage à l'archive
+                dossier.statut = 'archive'
                 dossier.save()
                 
                 if dossier.etudiant.user:
                     Notification.envoyer(
                         dossier.etudiant.user,
                         "✓ Processus terminé — Mémoire archivé",
-                        "Félicitations ! Votre document final a été validé. Votre parcours est maintenant terminé et archivé.",
+                        "Félicitations ! Votre document final a été validé et archivé. Il est désormais disponible dans la bibliothèque numérique.",
                         Notification.TYPE_SUCCES,
                     )
                 
-                # Notification à la bibliothèque
-                theme_texte = dossier.proposition.theme[:100] if dossier.proposition else '—'
+                # Notification à la bibliothèque (Correction de la syntaxe ici)
+                theme_titre = dossier.proposition.theme[:100] if dossier.proposition else '—'
                 for biblio in User.objects.filter(role='bibliotheque'):
                     Notification.envoyer(
                         biblio,
                         f"Nouveau mémoire à indexer — {dossier.etudiant.nom}",
-                        f"Étudiant : {dossier.etudiant.prenom} {dossier.etudiant.nom} | Thème : {theme_texte}",
-                        Notification.TYPE_INFO, '/bibliotheque/memoires/',
+                        f"Étudiant : {dossier.etudiant.prenom} {dossier.etudiant.nom} | Thème : {theme_titre}",
+                        Notification.TYPE_INFO, 
+                        '/bibliotheque/memoires/'
                     )
                 messages.success(request, "Dépôt final validé et archivé. Bibliothèque notifiée.")
-
-            # --- CAS B : C'EST LE DOSSIER DE SOUTENANCE (Début de parcours) ---
+            
+            # --- CAS DU DOSSIER INITIAL (Avant soutenance) ---
             else:
-                dossier.statut = 'valide_chef' # Statut : "Validé par le chef de département"
+                dossier.statut = 'valide_chef'
                 dossier.save()
                 if dossier.etudiant.user:
                     Notification.envoyer(
                         dossier.etudiant.user,
-                        "Dossier de soutenance approuvé ✓",
-                        "Votre dossier de soutenance est conforme. Le chef de département prépare maintenant votre jury.",
+                        "Dossier de soutenance validé ✓",
+                        "Votre dossier est conforme. Le chef de département va maintenant procéder à la proposition du jury.",
                         Notification.TYPE_SUCCES,
                     )
                 messages.success(request, "Dossier de soutenance validé avec succès.")
 
         elif action == 'rejeter' and motif:
+            # Rejet du dépôt final pour corrections
             if dossier.statut == 'depot_final_soumis':
-                dossier.statut = 'corrections' # On demande des corrections sur le mémoire final
+                dossier.statut = 'corrections'
                 dossier.motif_rejet = motif
                 dossier.save()
                 if dossier.etudiant.user:
                     Notification.envoyer(
                         dossier.etudiant.user,
-                        "Dépôt final rejeté",
-                        f"Des corrections sont nécessaires sur votre document final : {motif}",
-                        Notification.TYPE_REJET, '/etudiant/deposer-dossier/'
+                        "Dépôt final rejeté — Corrections requises",
+                        f"Motif : {motif}. Veuillez corriger le document et le soumettre à nouveau.",
+                        Notification.TYPE_REJET, 
+                        '/etudiant/deposer-dossier/'
                     )
                 messages.warning(request, "Dépôt final renvoyé pour corrections.")
+            
+            # Rejet du dossier de soutenance initial
             else:
-                dossier.statut = 'rejete_chef' # Rejet du dossier de soutenance initial
+                dossier.statut = 'rejete_chef'
                 dossier.motif_rejet = motif
                 dossier.save()
                 if dossier.etudiant.user:
                     Notification.envoyer(
                         dossier.etudiant.user, 
                         "Dossier de soutenance rejeté",
-                        f"Motif du rejet : {motif}", 
-                        Notification.TYPE_REJET, '/etudiant/deposer-dossier/'
+                        f"Motif : {motif}", 
+                        Notification.TYPE_REJET, 
+                        '/etudiant/deposer-dossier/'
                     )
                 messages.warning(request, "Dossier de soutenance rejeté.")
 
     return redirect('chef:dossiers')
-')
+
 
 # ── INSTRUIRE (jury + calendrier) ─────────────────────────
 @login_required
