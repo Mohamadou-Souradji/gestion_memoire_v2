@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from difflib import SequenceMatcher
-
+import re
 from apps.authentication.decorators import etudiant_requis
 from .models import (Etudiant, PropositionTheme, DossierSoutenance,
                      Notification, analyser_document_ia)
