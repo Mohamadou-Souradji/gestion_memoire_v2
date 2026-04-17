@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from difflib import SequenceMatcher
-import re
 
 from apps.authentication.decorators import etudiant_requis
 from .models import (Etudiant, PropositionTheme, DossierSoutenance,
@@ -200,9 +199,13 @@ def deposer_dossier(request):
         except: pass
 
     # Si PV saisi → mode dépôt final
+    # Inclure STATUT_REJETE_IA ici car si le PDF final est rejeté par IA,
+    # le statut repasse à rejete_ia mais le PV existe → on reste en mode final
     if dossier_actif and pv and dossier_actif.statut in [
             DossierSoutenance.STATUT_SOUTENU,
-            DossierSoutenance.STATUT_CORRECTIONS]:
+            DossierSoutenance.STATUT_CORRECTIONS,
+            DossierSoutenance.STATUT_REJETE_IA,
+            'depot_final_soumis']:
 
         formulaire_final = FormulaireDepotFinal(
             request.POST or None, request.FILES or None, instance=dossier_actif)
@@ -219,8 +222,13 @@ def deposer_dossier(request):
                 taux, _ = analyser_document_ia(dossier_tmp)
 
                 if dossier_tmp.statut == DossierSoutenance.STATUT_REJETE_IA:
+                    # Rejet IA dépôt final : remettre en CORRECTIONS pour re-dépôt
+                    dossier_tmp.statut = DossierSoutenance.STATUT_CORRECTIONS
+                    dossier_tmp.save()
                     messages.error(request,
-                        f"Document final rejeté. Taux IA : {taux}% (seuil : {seuil}%).")
+                        f"Document final rejeté automatiquement — taux IA : {taux}% "
+                        f"(seuil autorisé : {seuil}%). Corrigez votre document et re-déposez.")
+                    return redirect('etudiant:deposer_dossier')
                 else:
                     # Notifier le chef pour validation
                     chef = etudiant.chef_departement
@@ -231,7 +239,7 @@ def deposer_dossier(request):
                             f"(taux IA : {taux}%). Validation requise avant indexation.",
                             Notification.TYPE_INFO, '/chef/dossiers/')
                     messages.success(request, f"Document final soumis (taux IA : {taux}%). En attente de validation du chef.")
-                return redirect('etudiant:deposer_dossier')
+                    return redirect('etudiant:deposer_dossier')
 
         from django.conf import settings as dj_settings
         return render(request, 'etudiant/deposer_dossier.html', {
