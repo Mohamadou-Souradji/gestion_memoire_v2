@@ -2,8 +2,14 @@
 {% block sidebar_nav %}
 <div class="sidebar-section">Direction générale</div>
 <a href="{% url 'dg:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}>
-  <i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span>
-</a>
+  <i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span></a>
+<a href="{% url 'dg:validation_finale' %}" {% if request.resolver_match.url_name == 'validation_finale' %}class="active"{% endif %}>
+  <i class="fas fa-stamp fa-fw icone"></i><span>Validation finale</span>
+  {% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
+<div class="sidebar-section">Compte</div>
+<a href="{% url 'dg:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}>
+  <i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>
+  {% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
 {% endblock %}
-{% block url_notifs %}{% url 'dg:tableau_de_bord' %}{% endblock %}
+{% block url_notifs %}{% url 'dg:notifications' %}{% endblock %}
 {% block contenu %}{% block contenu_dg %}{% endblock %}{% endblock %}

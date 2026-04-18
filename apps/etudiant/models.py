@@ -312,7 +312,7 @@ class PVSoutenance(models.Model):
         return f"PV {self.dossier.etudiant} — {self.note}/20"
 
 
-def analyser_document_ia(dossier):
+def analyser_document_ia(dossier, seuil_override=None):
     """
     Lance l'analyse IA sur le PDF du dossier.
     Met à jour dossier.taux_ia et dossier.statut.
@@ -329,7 +329,13 @@ def analyser_document_ia(dossier):
         taux   = round(random.uniform(5, 95), 1)
         details = {'methode': 'fallback_aleatoire'}
 
-    seuil = getattr(dj_settings, 'AI_DETECTION_THRESHOLD', 70)
+    if seuil_override is not None:
+        seuil = seuil_override
+    else:
+        try:
+            seuil = ParametreSysteme.get().taux_ia_max
+        except Exception:
+            seuil = getattr(dj_settings, 'AI_DETECTION_THRESHOLD', 70)
     dossier.taux_ia = taux
 
     if taux >= seuil:
@@ -344,3 +350,25 @@ def analyser_document_ia(dossier):
 
     dossier.save()
     return taux, details
+
+
+class ParametreSysteme(models.Model):
+    """Paramètres configurables par le DE. Singleton — pk=1."""
+    taux_ia_max            = models.IntegerField(default=10,
+        help_text="Taux IA max autorisé (%). Au-delà → rejet automatique.")
+    seuil_similarite_theme = models.IntegerField(default=10,
+        help_text="Seuil similarité thèmes (%). Au-delà → avertissement.")
+    otp_actif              = models.BooleanField(default=True,
+        help_text="Activer la double authentification OTP.")
+    mis_a_jour             = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètre système"
+
+    def __str__(self):
+        return f"Paramètres IA:{self.taux_ia_max}% Sim:{self.seuil_similarite_theme}% OTP:{'On' if self.otp_actif else 'Off'}"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

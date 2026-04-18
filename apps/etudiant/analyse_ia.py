@@ -95,7 +95,7 @@ def _heuristique(texte):
     return round(max(5.0, min(95.0, s)), 1)
 
 
-def calculer_taux_ia(chemin_fichier):
+def calculer_taux_ia(chemin_fichier, seuil_override=None):
     """
     Analyse IA garantie 40–60s.
     Ordre : ZeroGPT (gratuit) → GPTZero → heuristique.

@@ -1,0 +1,113 @@
+{% extends "directeur_etudes/base_directeur_etudes.html" %}
+{% block titre %}Paramètres système{% endblock %}
+{% block titre_page %}Paramètres système{% endblock %}
+{% block contenu_directeur %}
+
+<div style="max-width:620px;">
+  <div class="alerte info">
+    <i class="fas fa-circle-info"></i>
+    Ces paramètres s'appliquent immédiatement à toute l'application.
+    Les valeurs par défaut sont de <strong>10%</strong>.
+  </div>
+
+  <div class="section-form">
+    <div class="section-form-titre"><i class="fas fa-sliders"></i> Configuration générale</div>
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="champ">
+        <label>
+          <i class="fas fa-robot" style="color:var(--bleu)"></i>
+          Taux IA maximum autorisé (%) *
+        </label>
+        <input type="number" name="taux_ia_max"
+               value="{{ params.taux_ia_max }}" min="1" max="100" required>
+        <p style="font-size:.78rem;color:var(--gris);margin-top:3px;">
+          Si le taux de contenu IA détecté dans un PDF dépasse cette valeur, le dossier est rejeté automatiquement.
+          <br>Valeur actuelle : <strong>{{ params.taux_ia_max }}%</strong>
+        </p>
+      </div>
+
+      <div class="champ" style="margin-top:14px;">
+        <label>
+          <i class="fas fa-copy" style="color:var(--bleu)"></i>
+          Seuil de similarité des thèmes (%) *
+        </label>
+        <input type="number" name="seuil_similarite_theme"
+               value="{{ params.seuil_similarite_theme }}" min="1" max="100" required>
+        <p style="font-size:.78rem;color:var(--gris);margin-top:3px;">
+          Si un thème proposé ressemble à plus de cette valeur à un thème existant, un avertissement est affiché.
+          Au-delà de 60%, la proposition est bloquée.
+          <br>Valeur actuelle : <strong>{{ params.seuil_similarite_theme }}%</strong>
+        </p>
+      </div>
+
+      <div class="champ" style="margin-top:14px;">
+        <label>
+          <i class="fas fa-shield-halved" style="color:var(--bleu)"></i>
+          Double authentification (OTP par e-mail)
+        </label>
+        <div style="display:flex;gap:16px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+            <input type="radio" name="otp_actif" value="1"
+                   {% if params.otp_actif %}checked{% endif %}>
+            <span>
+              <i class="fas fa-lock" style="color:var(--succes)"></i>
+              <strong>Activée</strong> — Un code OTP est envoyé par e-mail à chaque connexion
+            </span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+            <input type="radio" name="otp_actif" value="0"
+                   {% if not params.otp_actif %}checked{% endif %}>
+            <span>
+              <i class="fas fa-lock-open" style="color:var(--alerte)"></i>
+              <strong>Désactivée</strong> — Connexion directe sans code OTP
+            </span>
+          </label>
+        </div>
+        <p style="font-size:.78rem;color:var(--gris);margin-top:6px;">
+          État actuel : <strong>{% if params.otp_actif %}Activée{% else %}Désactivée{% endif %}</strong>.
+          Désactiver en phase de test uniquement.
+        </p>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-save"></i> Enregistrer les paramètres
+        </button>
+        <a href="{% url 'directeur:tableau_de_bord' %}" class="btn btn-gris btn-lg">
+          <i class="fas fa-arrow-left"></i> Retour
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Récapitulatif -->
+  <div class="carte" style="border-left:3px solid var(--jaune);">
+    <div class="carte-titre"><i class="fas fa-info-circle"></i> Valeurs actuelles</div>
+    <table style="width:100%;font-size:.88rem;border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #eef2f8;">
+        <td style="padding:8px;color:var(--gris);">Taux IA max</td>
+        <td style="padding:8px;font-weight:600;">{{ params.taux_ia_max }}%</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eef2f8;">
+        <td style="padding:8px;color:var(--gris);">Seuil similarité thèmes</td>
+        <td style="padding:8px;font-weight:600;">{{ params.seuil_similarite_theme }}%</td>
+      </tr>
+      <tr>
+        <td style="padding:8px;color:var(--gris);">Double authentification</td>
+        <td style="padding:8px;">
+          {% if params.otp_actif %}
+          <span class="badge-statut badge-valide">Activée</span>
+          {% else %}
+          <span class="badge-statut badge-rejete">Désactivée</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:.75rem;color:var(--gris);margin-top:10px;">
+      Dernière modification : {{ params.mis_a_jour|date:"d/m/Y à H:i" }}
+    </p>
+  </div>
+</div>
+{% endblock %}

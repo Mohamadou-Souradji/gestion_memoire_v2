@@ -31,3 +31,6 @@ class DossierSoutenanceAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('destinataire', 'titre', 'type', 'lue', 'cree_le')
     list_filter  = ('type', 'lue')
+
+from .models import ParametreSysteme
+admin.site.register(ParametreSysteme)
