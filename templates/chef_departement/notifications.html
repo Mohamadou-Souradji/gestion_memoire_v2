@@ -1,9 +1,0 @@
-{% extends "chef_departement/base_chef.html" %}
-{% block titre %}Notifications{% endblock %}
-{% block titre_page %}Notifications{% endblock %}
-{% block contenu_chef %}
-<div class="carte">
-  <div class="carte-titre"><i class="fas fa-bell"></i> {{ notifications.count }} notification(s)</div>
-  {% include "shared/notifications_liste.html" %}
-</div>
-{% endblock %}

@@ -1,9 +1,0 @@
-{% extends "shared/base.html" %}
-{% block sidebar_nav %}
-<div class="sidebar-section">Bibliothèque</div>
-<a href="{% url 'bibliotheque:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}><i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span></a>
-<a href="{% url 'bibliotheque:memoires' %}" {% if request.resolver_match.url_name in 'memoires indexer' %}class="active"{% endif %}><i class="fas fa-book fa-fw icone"></i><span>Mémoires</span></a>
-<a href="{% url 'bibliotheque:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}><i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>{% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
-{% endblock %}
-{% block url_notifs %}{% url 'bibliotheque:notifications' %}{% endblock %}
-{% block contenu %}{% block contenu_bibliotheque %}{% endblock %}{% endblock %}

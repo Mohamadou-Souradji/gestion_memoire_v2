@@ -1,9 +1,0 @@
-{% extends "shared/base.html" %}
-{% block sidebar_nav %}
-<div class="sidebar-section">Direction générale</div>
-<a href="{% url 'dg:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}>
-  <i class="fas fa-home fa-fw icone"></i><span>Tableau de bord</span>
-</a>
-{% endblock %}
-{% block url_notifs %}{% url 'dg:tableau_de_bord' %}{% endblock %}
-{% block contenu %}{% block contenu_dg %}{% endblock %}{% endblock %}

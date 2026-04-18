@@ -1,9 +1,0 @@
-{% extends "shared/base.html" %}
-{% block sidebar_nav %}
-<div class="sidebar-section">Jury</div>
-<a href="{% url 'jury:tableau_de_bord' %}" {% if request.resolver_match.url_name == 'tableau_de_bord' %}class="active"{% endif %}><i class="fas fa-calendar-check fa-fw icone"></i><span>Mes soutenances</span></a>
-<a href="{% url 'jury:historique' %}" {% if request.resolver_match.url_name == 'historique' %}class="active"{% endif %}><i class="fas fa-history fa-fw icone"></i><span>Historique</span></a>
-<a href="{% url 'jury:notifications' %}" {% if request.resolver_match.url_name == 'notifications' %}class="active"{% endif %}><i class="fas fa-bell fa-fw icone"></i><span>Notifications</span>{% if nb_notifs > 0 %}<span class="badge-notif">{{ nb_notifs }}</span>{% endif %}</a>
-{% endblock %}
-{% block url_notifs %}{% url 'jury:notifications' %}{% endblock %}
-{% block contenu %}{% block contenu_jury %}{% endblock %}{% endblock %}
