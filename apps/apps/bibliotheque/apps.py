@@ -1,7 +1,0 @@
-from django.apps import AppConfig
-
-class BibliothequeConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.bibliotheque'
-    label = 'bibliotheque'
-    verbose_name = 'Bibliothèque'
