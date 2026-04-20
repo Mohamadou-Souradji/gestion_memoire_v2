@@ -1,6 +1,9 @@
 {% extends "etudiant/base_etudiant.html" %}
 {% block titre %}Dépôt dossier{% endblock %}
-{% block titre_page %}{% if mode == 'final' %}Dépôt du document final{% else %}Déposer mon dossier de soutenance{% endif %}{% endblock %}
+{% block titre_page %}
+  {% if mode == 'final' %}Dépôt du document final{% else %}Déposer mon dossier de soutenance{% endif %}
+{% endblock %}
+
 {% block contenu_etudiant %}
 
 <!-- Overlay analyse IA -->
@@ -16,7 +19,9 @@
 </div>
 
 {% if mode == 'final' %}
-  <!-- ── MODE DÉPÔT FINAL ── -->
+
+<!-- ===================== MODE FINAL ===================== -->
+
   {% if pv %}
   <div class="carte" style="border-left:3px solid var(--succes);margin-bottom:14px;">
     <div class="carte-titre"><i class="fas fa-file-signature"></i> Résultat de soutenance</div>
@@ -27,6 +32,7 @@
         <span class="badge-statut badge-{{ pv.decision }}">{{ pv.get_decision_display }}</span>
       </div>
     </div>
+
     {% if pv.observations %}
     <div style="margin-top:10px;padding:10px;background:var(--gris-clair);border-radius:6px;font-size:.87rem;">
       <strong>Observations :</strong><br>{{ pv.observations }}
@@ -35,153 +41,185 @@
   </div>
   {% endif %}
 
-  <div class="alerte info" style="margin-bottom:14px;">
+  <div class="alerte info">
     <i class="fas fa-info-circle"></i>
-    Le document final sera également analysé (taux IA ≤ {{ seuil_ia }}%) avant transmission à la bibliothèque.
+    Le document final sera analysé (taux IA ≤ {{ seuil_ia }}%) avant archivage.
   </div>
 
   <div class="section-form">
-    <div class="section-form-titre"><i class="fas fa-upload"></i> Dépôt du document final</div>
-    <form method="post" enctype="multipart/form-data" id="form-depot">
+    <div class="section-form-titre">
+      <i class="fas fa-upload"></i> Dépôt du document final
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="form-depot-final">
       {% csrf_token %}
       <input type="hidden" name="mode" value="final">
+
       <div class="champ">
-        <label><i class="fas fa-file-pdf" style="color:var(--danger)"></i> Mémoire final corrigé (PDF) *</label>
+        <label><i class="fas fa-file-pdf"></i> Mémoire final (PDF)</label>
         <div class="zone-upload" onclick="document.getElementById('id_memoire_final_pdf').click()">
-          <i class="fas fa-file-pdf" style="font-size:1.6rem;color:var(--bleu);display:block;margin-bottom:4px;"></i>
-          <span id="nom-final" style="font-size:.86rem;color:var(--gris);">Cliquez pour choisir</span>
+          <span id="nom-final">Choisir fichier</span>
           {{ formulaire_final.memoire_final_pdf }}
         </div>
       </div>
+
       <div class="champ">
-        <label><i class="fas fa-certificate" style="color:var(--jaune-fonce)"></i> Quitus du président du jury (PDF ou image) *</label>
+        <label><i class="fas fa-certificate"></i> Quitus président</label>
         <div class="zone-upload" onclick="document.getElementById('id_quitus_president').click()">
-          <span id="nom-qpres" style="font-size:.86rem;color:var(--gris);"><i class="fas fa-upload"></i> Choisir fichier</span>
+          <span id="nom-qpres">Choisir fichier</span>
           {{ formulaire_final.quitus_president }}
         </div>
       </div>
-      <button type="submit" class="btn btn-primary btn-lg btn-bloc" style="margin-top:14px;" id="btn-submit">
-        <i class="fas fa-paper-plane"></i> Soumettre le document final
+
+      <button type="submit" class="btn btn-primary btn-bloc" id="btn-submit-final">
+        <i class="fas fa-paper-plane"></i> Soumettre
       </button>
     </form>
   </div>
 
 {% else %}
-  <!-- ── MODE DÉPÔT INITIAL ── -->
+
+<!-- ===================== MODE INITIAL ===================== -->
+
   {% if proposition %}
   <div class="carte" style="border-left:3px solid var(--succes);margin-bottom:14px;">
-    <div class="carte-titre"><i class="fas fa-check-circle" style="color:var(--succes)"></i> Thème validé</div>
+    <div class="carte-titre"><i class="fas fa-check-circle"></i> Thème validé</div>
     <p style="font-weight:600;">{{ proposition.theme }}</p>
-    <p style="font-size:.82rem;color:var(--gris);margin-top:4px;">
+    <p style="font-size:.82rem;color:var(--gris);">
       {{ proposition.encadreur }} — {{ proposition.entreprise }} — {{ proposition.lieu_stage }}
     </p>
   </div>
   {% endif %}
 
-  <div class="alerte info" style="margin-bottom:14px;">
+  <div class="alerte info">
     <i class="fas fa-robot"></i>
-    Votre mémoire sera analysé automatiquement (<strong>40–60 secondes</strong>).
-    Si le taux IA dépasse <strong>{{ seuil_ia }}%</strong>, le dossier est rejeté automatiquement.
+    Analyse automatique activée (seuil IA : {{ seuil_ia }}%).
   </div>
 
   <div class="section-form">
-    <div class="section-form-titre"><i class="fas fa-folder-arrow-up"></i> Documents à déposer</div>
-    <form method="post" enctype="multipart/form-data" novalidate id="form-depot">
+    <div class="section-form-titre">
+      <i class="fas fa-folder"></i> Dépôt dossier
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="form-depot-initial">
       {% csrf_token %}
       <input type="hidden" name="mode" value="initial">
 
       <div class="champ">
-        <label><i class="fas fa-file-pdf" style="color:var(--danger)"></i> Mémoire / rapport (PDF uniquement) *</label>
+        <label>Mémoire PDF</label>
         <div class="zone-upload" onclick="document.getElementById('id_memoire_pdf').click()">
-          <i class="fas fa-file-pdf" style="font-size:1.8rem;color:var(--bleu);display:block;margin-bottom:5px;"></i>
-          <span id="nom-memoire" style="font-size:.86rem;color:var(--gris);">Cliquez pour choisir un PDF (max 20 Mo)</span>
+          <span id="nom-memoire">Choisir fichier</span>
           {{ formulaire.memoire_pdf }}
         </div>
-        {% if formulaire.memoire_pdf.errors %}<p class="erreur">{{ formulaire.memoire_pdf.errors.0 }}</p>{% endif %}
       </div>
 
       <div class="grille-2">
         <div class="champ">
-          <label><i class="fas fa-stamp" style="color:var(--bleu)"></i> Quitus pédagogique * <small style="font-weight:400;">(PDF/image)</small></label>
+          <label>Quitus pédagogique</label>
           <div class="zone-upload" onclick="document.getElementById('id_quitus_pedagogique').click()">
-            <span id="nom-qped" style="font-size:.83rem;color:var(--gris);"><i class="fas fa-upload"></i> Choisir</span>
+            <span id="nom-qped">Choisir</span>
             {{ formulaire.quitus_pedagogique }}
           </div>
-          {% if formulaire.quitus_pedagogique.errors %}<p class="erreur">{{ formulaire.quitus_pedagogique.errors.0 }}</p>{% endif %}
         </div>
+
         <div class="champ">
-          <label><i class="fas fa-stamp" style="color:var(--bleu)"></i> Quitus financier * <small style="font-weight:400;">(PDF/image)</small></label>
+          <label>Quitus financier</label>
           <div class="zone-upload" onclick="document.getElementById('id_quitus_financier').click()">
-            <span id="nom-qfin" style="font-size:.83rem;color:var(--gris);"><i class="fas fa-upload"></i> Choisir</span>
+            <span id="nom-qfin">Choisir</span>
             {{ formulaire.quitus_financier }}
           </div>
-          {% if formulaire.quitus_financier.errors %}<p class="erreur">{{ formulaire.quitus_financier.errors.0 }}</p>{% endif %}
         </div>
       </div>
 
       <div class="champ">
-        <label><i class="fas fa-stamp" style="color:var(--bleu)"></i> Quitus de l'encadreur * <small style="font-weight:400;">(PDF/image)</small></label>
+        <label>Quitus encadreur</label>
         <div class="zone-upload" onclick="document.getElementById('id_quitus_encadreur').click()">
-          <span id="nom-qenc" style="font-size:.83rem;color:var(--gris);"><i class="fas fa-upload"></i> Choisir</span>
+          <span id="nom-qenc">Choisir</span>
           {{ formulaire.quitus_encadreur }}
         </div>
-        {% if formulaire.quitus_encadreur.errors %}<p class="erreur">{{ formulaire.quitus_encadreur.errors.0 }}</p>{% endif %}
       </div>
 
-      <button type="submit" class="btn btn-primary btn-lg btn-bloc" style="margin-top:14px;" id="btn-submit">
-        <i class="fas fa-cloud-upload-alt"></i> Soumettre le dossier
+      <button type="submit" class="btn btn-primary btn-bloc" id="btn-submit">
+        <i class="fas fa-upload"></i> Soumettre
       </button>
     </form>
   </div>
+
 {% endif %}
 
 {% endblock %}
+
 {% block js_extra %}
 <script>
-// Nommer les fichiers sélectionnés
-[['id_memoire_pdf','nom-memoire'],['id_quitus_pedagogique','nom-qped'],
- ['id_quitus_financier','nom-qfin'],['id_quitus_encadreur','nom-qenc'],
- ['id_memoire_final_pdf','nom-final'],['id_quitus_president','nom-qpres']
-].forEach(([id,sp])=>{
-  const el=document.getElementById(id);
-  if(el) el.addEventListener('change',()=>{
-    const s=document.getElementById(sp);
-    if(s) s.textContent=el.files[0]?el.files[0].name:'Choisir';
-  });
+
+// ===== fichiers sélectionnés =====
+[
+  ['id_memoire_pdf','nom-memoire'],
+  ['id_quitus_pedagogique','nom-qped'],
+  ['id_quitus_financier','nom-qfin'],
+  ['id_quitus_encadreur','nom-qenc'],
+  ['id_memoire_final_pdf','nom-final'],
+  ['id_quitus_president','nom-qpres']
+].forEach(([id, label]) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('change', () => {
+      const span = document.getElementById(label);
+      if (span) span.textContent = el.files[0] ? el.files[0].name : 'Choisir fichier';
+    });
+  }
 });
 
-// Overlay IA avec progression animée
-const form = document.getElementById('form-depot');
-if(form) form.addEventListener('submit', function(){
-  document.getElementById('overlay-ia').classList.add('actif');
-  document.getElementById('btn-submit').disabled = true;
-  const etapes=[
-    {p:5,  m:'Réception du fichier...'},
-    {p:14, m:'Extraction du texte PDF...'},
-    {p:26, m:'Détection des marqueurs IA français...'},
-    {p:38, m:'Détection des marqueurs IA anglais...'},
-    {p:50, m:'Analyse de la structure des phrases...'},
-    {p:63, m:'Calcul du ratio de transitions...'},
-    {p:74, m:'Analyse du vocabulaire générique...'},
-    {p:85, m:'Calcul du score pondéré...'},
-    {p:94, m:'Génération du rapport d\'analyse...'},
-  ];
-  const barre=document.getElementById('barre');
-  const msg=document.getElementById('msg-ia');
-  const timer=document.getElementById('timer-ia');
-  const DUREE=52000; // 52s cible
-  const start=Date.now();
-  let idx=0;
-  function tick(){
-    const e=Date.now()-start;
-    const p=Math.min(95,(e/DUREE)*95);
-    barre.style.width=p+'%';
-    timer.textContent=Math.floor(e/1000)+'s';
-    while(idx<etapes.length && p>=etapes[idx].p) msg.textContent=etapes[idx++].m;
-    if(p<95) requestAnimationFrame(tick);
-    else{ barre.style.width='99%'; msg.textContent='Traitement final...'; }
-  }
-  requestAnimationFrame(tick);
-});
+// ===== animation IA =====
+function lancerIA(formId, btnId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+
+  form.addEventListener('submit', function () {
+
+    const overlay = document.getElementById('overlay-ia');
+    if (overlay) overlay.classList.add('actif');
+
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = true;
+
+    const barre = document.getElementById('barre');
+    const msg = document.getElementById('msg-ia');
+    const timer = document.getElementById('timer-ia');
+
+    const etapes = [
+      {p:10, m:'Analyse du document...'},
+      {p:30, m:'Extraction du texte...'},
+      {p:60, m:'Détection IA...'},
+      {p:85, m:'Calcul du score...'},
+      {p:95, m:'Finalisation...'}
+    ];
+
+    const start = Date.now();
+    let i = 0;
+
+    function tick(){
+      const t = Date.now() - start;
+      const p = Math.min(95, (t / 50000) * 100);
+
+      if (barre) barre.style.width = p + '%';
+      if (timer) timer.textContent = Math.floor(t/1000) + 's';
+
+      while(i < etapes.length && p >= etapes[i].p){
+        if (msg) msg.textContent = etapes[i].m;
+        i++;
+      }
+
+      if (p < 95) requestAnimationFrame(tick);
+      else if (barre) barre.style.width = '99%';
+    }
+
+    requestAnimationFrame(tick);
+  });
+}
+
+lancerIA('form-depot-initial', 'btn-submit');
+lancerIA('form-depot-final', 'btn-submit-final');
+
 </script>
 {% endblock %}

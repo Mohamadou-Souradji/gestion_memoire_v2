@@ -9,6 +9,40 @@
   --danger:#c0392b;--succes:#1a7a4a;--alerte:#b45309;--info:#0369a1;
   --sidebar:250px;--r:8px;--sh:0 1px 4px rgba(26,79,138,.08);
 }
+/* --- FIX MAGIQUE POUR LES MODAUX --- */
+
+/* 1. On s'assure que le modal ne pousse jamais le contenu du tableau */
+.modal-overlay {
+    display: none !important; /* Cache par défaut */
+    position: fixed !important; /* Sort l'élément du flux HTML */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999; /* Toujours au-dessus de tout */
+    justify-content: center;
+    align-items: center;
+}
+
+/* 2. On affiche le modal proprement seulement quand il est actif */
+.modal-overlay.actif {
+    display: flex !important;
+}
+
+/* 3. Sécurité pour empêcher le défilement horizontal (la barre grise à droite) */
+body, html {
+    overflow-x: hidden !important;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* 4. On s'assure que le conteneur principal prend toute la place sans déborder */
+.main-content, .escep-main {
+    flex: 1;
+    min-width: 0; 
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#1e2d3d;font-size:.94rem;line-height:1.5}
 

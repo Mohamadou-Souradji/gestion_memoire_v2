@@ -1,19 +1,27 @@
 {% extends "chef_departement/base_chef.html" %}
-{% block titre %}Dossiers{% endblock %}
+{% block titre %}Dossiers de soutenance{% endblock %}
 {% block titre_page %}Dossiers de soutenance{% endblock %}
-{% block contenu_chef %}
 
+{% block contenu_chef %}
 {% include "shared/barre_filtres.html" with show_statut_dossier=True %}
 
 <div class="carte">
-  <div class="carte-titre"><i class="fas fa-folder-open"></i> {{ dossiers.count }} dossier(s)</div>
+  <div class="carte-titre">
+    <i class="fas fa-folder-open"></i> {{ dossiers.count }} dossier(s)
+  </div>
   {% if dossiers %}
   <div class="tableau-wrap">
     <table class="tableau">
-      <thead><tr>
-        <th>Étudiant</th><th>Thème / Classe</th><th>IA</th>
-        <th>Documents soumis</th><th>Statut</th><th>Actions</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th>Étudiant</th>
+          <th>Thème / Classe</th>
+          <th>Taux IA</th>
+          <th>Documents</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody>
         {% for d in dossiers %}
         <tr>
@@ -21,8 +29,8 @@
             <strong>{{ d.etudiant.nom }} {{ d.etudiant.prenom }}</strong><br>
             <small style="color:var(--gris)">{{ d.etudiant.matricule }}</small>
           </td>
-          <td style="max-width:180px;">
-            <span style="font-size:.82rem;">{{ d.proposition.theme|truncatechars:50|default:"—" }}</span><br>
+          <td style="max-width:200px;">
+            <span style="font-size:.82rem;">{{ d.proposition.theme|truncatechars:55|default:"—" }}</span><br>
             <small>{{ d.etudiant.specialite.code }} — {{ d.etudiant.annee_academique }}</small>
             {% if d.pv %}
             <br><small style="color:var(--succes);font-weight:600;">
@@ -32,63 +40,62 @@
           </td>
           <td>
             {% if d.taux_ia is not None %}
-            <span style="font-size:.82rem;font-weight:600;color:{% if d.taux_ia >= 70 %}var(--danger){% elif d.taux_ia >= 40 %}var(--alerte){% else %}var(--succes){% endif %};">
+            <span style="font-size:.82rem;font-weight:700;color:{% if d.taux_ia >= 70 %}var(--danger){% elif d.taux_ia >= 40 %}var(--alerte){% else %}var(--succes){% endif %}">
               {{ d.taux_ia }}%
             </span>
-            <div class="jauge-ia" style="width:65px;margin-top:3px;">
+            <div class="jauge-ia" style="width:60px;margin-top:3px;">
               <div class="jauge-fill {% if d.taux_ia >= 70 %}danger{% elif d.taux_ia >= 40 %}alerte{% else %}sauf{% endif %}"
                    style="width:{{ d.taux_ia }}%;"></div>
             </div>
-            {% else %}—{% endif %}
+            {% else %}<span style="color:var(--gris)">—</span>{% endif %}
           </td>
-          <td>
-            <!-- Légende guidée des documents -->
-            <div style="display:flex;flex-direction:column;gap:3px;font-size:.78rem;">
+          <td style="font-size:.79rem;min-width:170px;">
+            <div style="display:flex;flex-direction:column;gap:4px;">
               <div>
-                <span style="color:var(--gris);width:110px;display:inline-block;">Mémoire soutenance :</span>
+                <span style="color:var(--gris);display:inline-block;width:110px;">Mémoire :</span>
                 {% if d.memoire_pdf %}
-                <a href="{{ d.memoire_pdf.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.memoire_pdf.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-file-pdf" style="color:var(--danger)"></i> Voir
                 </a>
-                {% else %}<span style="color:var(--danger)">✗ manquant</span>{% endif %}
+                {% else %}<span style="color:var(--danger)">✗</span>{% endif %}
               </div>
               <div>
-                <span style="color:var(--gris);width:110px;display:inline-block;">Quitus péd. :</span>
+                <span style="color:var(--gris);display:inline-block;width:110px;">Quitus péd. :</span>
                 {% if d.quitus_pedagogique %}
-                <a href="{{ d.quitus_pedagogique.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.quitus_pedagogique.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-stamp" style="color:var(--bleu)"></i> Voir
                 </a>
                 {% else %}<span style="color:var(--danger)">✗</span>{% endif %}
               </div>
               <div>
-                <span style="color:var(--gris);width:110px;display:inline-block;">Quitus fin. :</span>
+                <span style="color:var(--gris);display:inline-block;width:110px;">Quitus fin. :</span>
                 {% if d.quitus_financier %}
-                <a href="{{ d.quitus_financier.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.quitus_financier.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-stamp" style="color:var(--bleu)"></i> Voir
                 </a>
                 {% else %}<span style="color:var(--danger)">✗</span>{% endif %}
               </div>
               <div>
-                <span style="color:var(--gris);width:110px;display:inline-block;">Quitus enc. :</span>
+                <span style="color:var(--gris);display:inline-block;width:110px;">Quitus enc. :</span>
                 {% if d.quitus_encadreur %}
-                <a href="{{ d.quitus_encadreur.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.quitus_encadreur.url }}" target="_blank" class="btn btn-outline btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-stamp" style="color:var(--bleu)"></i> Voir
                 </a>
                 {% else %}<span style="color:var(--danger)">✗</span>{% endif %}
               </div>
               {% if d.memoire_final_pdf or d.quitus_president %}
-              <div style="border-top:1px solid #eef2f8;padding-top:3px;margin-top:2px;">
-                <span style="color:var(--gris);width:110px;display:inline-block;">Mémoire final :</span>
+              <div style="border-top:1px solid #eef2f8;margin-top:3px;padding-top:3px;">
+                <span style="color:var(--gris);display:inline-block;width:110px;">Mémoire final :</span>
                 {% if d.memoire_final_pdf %}
-                <a href="{{ d.memoire_final_pdf.url }}" target="_blank" class="btn btn-jaune btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.memoire_final_pdf.url }}" target="_blank" class="btn btn-jaune btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-file-pdf"></i> Voir
                 </a>
                 {% else %}<span style="color:var(--gris)">—</span>{% endif %}
               </div>
               <div>
-                <span style="color:var(--gris);width:110px;display:inline-block;">Quitus président :</span>
+                <span style="color:var(--gris);display:inline-block;width:110px;">Quitus pré. :</span>
                 {% if d.quitus_president %}
-                <a href="{{ d.quitus_president.url }}" target="_blank" class="btn btn-jaune btn-sm" style="padding:1px 6px;">
+                <a href="{{ d.quitus_president.url }}" target="_blank" class="btn btn-jaune btn-sm" style="padding:2px 7px;">
                   <i class="fas fa-certificate"></i> Voir
                 </a>
                 {% else %}<span style="color:var(--gris)">—</span>{% endif %}
@@ -101,14 +108,23 @@
             <small style="color:var(--gris);font-size:.72rem;">{{ d.date_soumission|date:"d/m/Y" }}</small>
           </td>
           <td style="white-space:nowrap;">
-            {% if d.statut == 'en_instruction' or d.statut == 'depot_final_soumis' %}
-            <button class="btn btn-succes btn-sm" onclick="prepDosVal({{ d.id }},
-              '{{ d.statut }}')">
-              <i class="fas fa-check"></i></button>
-            <button class="btn btn-danger btn-sm" onclick="prepDosRej({{ d.id }})">
-              <i class="fas fa-xmark"></i></button>
+            {% if d.statut == 'en_instruction' %}
+              <button class="btn btn-succes btn-sm" onclick="ouvrirValider({{ d.id }}, 'initial')" title="Valider">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="ouvrirRejeter({{ d.id }}, 'initial')" title="Rejeter">
+                <i class="fas fa-xmark"></i>
+              </button>
+            {% elif d.statut == 'depot_final_soumis' %}
+              <div style="font-size:.72rem;color:var(--info);margin-bottom:4px;font-weight:600;">Dépôt final</div>
+              <button class="btn btn-succes btn-sm" onclick="ouvrirValider({{ d.id }}, 'final')" title="Valider le dépôt final">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="ouvrirRejeter({{ d.id }}, 'final')" title="Rejeter le dépôt final">
+                <i class="fas fa-xmark"></i>
+              </button>
             {% else %}
-            <span style="font-size:.75rem;color:var(--gris);">—</span>
+              <span style="font-size:.75rem;color:var(--gris)">—</span>
             {% endif %}
           </td>
         </tr>
@@ -117,48 +133,175 @@
     </table>
   </div>
   {% else %}
-  <div style="text-align:center;padding:36px;color:var(--gris);">
-    <i class="fas fa-folder-open" style="font-size:2rem;display:block;margin-bottom:10px;"></i>Aucun dossier trouvé.
+  <div style="text-align:center;padding:40px;color:var(--gris);">
+    <i class="fas fa-folder-open" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>
+    Aucun dossier trouvé.
   </div>
   {% endif %}
 </div>
-
-<div class="modal-overlay" id="modal-dos-val"><div class="modal">
-  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-check-circle" style="color:var(--succes)"></i> Valider</span>
-    <button class="modal-fermer" onclick="fermerModal('modal-dos-val')"><i class="fas fa-xmark"></i></button></div>
-  <div class="modal-corps" id="dos-val-msg"><p>Confirmer la validation ?</p></div>
-  <div class="modal-pied"><button class="btn btn-gris btn-sm" onclick="fermerModal('modal-dos-val')">Annuler</button>
-    <form id="form-dos-val" method="post">{% csrf_token %}<input type="hidden" name="action" value="valider">
-      <button type="submit" class="btn btn-succes btn-sm"><i class="fas fa-check"></i> Valider</button></form>
-  </div>
-</div></div>
-
-<div class="modal-overlay" id="modal-dos-rej"><div class="modal">
-  <div class="modal-entete"><span class="modal-titre"><i class="fas fa-times-circle" style="color:var(--danger)"></i> Rejeter</span>
-    <button class="modal-fermer" onclick="fermerModal('modal-dos-rej')"><i class="fas fa-xmark"></i></button></div>
-  <form id="form-dos-rej" method="post">{% csrf_token %}<input type="hidden" name="action" value="rejeter">
-    <div class="modal-corps"><div class="champ"><label>Motif *</label>
-      <textarea name="motif" rows="3" required placeholder="Motif obligatoire..."></textarea></div></div>
-    <div class="modal-pied"><button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-dos-rej')">Annuler</button>
-      <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-paper-plane"></i> Rejeter</button></div>
-  </form>
-</div></div>
 {% endblock %}
-{% block js_extra %}{% include "shared/js_modaux.html" %}
+
+{% block modaux %}
+<!-- Modal : Valider dossier initial -->
+<div class="modal-overlay" id="modal-val-initial" style="display:none;">
+  <div class="modal">
+    <div class="modal-entete">
+      <span class="modal-titre">
+        <i class="fas fa-check-circle" style="color:var(--succes)"></i> Valider le dossier
+      </span>
+      <button class="modal-fermer" onclick="fermerModal('modal-val-initial')" type="button">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-corps">
+      <p>Confirmer la validation de ce dossier ?</p>
+      <p style="font-size:.84rem;color:var(--gris);margin-top:6px;">
+        L'étudiant sera notifié et un jury pourra être proposé.
+      </p>
+    </div>
+    <div class="modal-pied">
+      <button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-val-initial')">Annuler</button>
+      <form id="form-val-initial" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="valider">
+        <button type="submit" class="btn btn-succes btn-sm">
+          <i class="fas fa-check"></i> Confirmer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Valider dépôt final -->
+<div class="modal-overlay" id="modal-val-final" style="display:none;">
+  <div class="modal">
+    <div class="modal-entete">
+      <span class="modal-titre">
+        <i class="fas fa-check-circle" style="color:var(--succes)"></i> Valider le dépôt final
+      </span>
+      <button class="modal-fermer" onclick="fermerModal('modal-val-final')" type="button">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-corps">
+      <p>Valider et archiver définitivement ce mémoire ?</p>
+      <p style="font-size:.84rem;color:var(--gris);margin-top:6px;">
+        <i class="fas fa-circle-info" style="color:var(--info)"></i>
+        L'étudiant sera notifié de la fin du processus.
+        La bibliothèque recevra le document pour indexation.
+      </p>
+    </div>
+    <div class="modal-pied">
+      <button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-val-final')">Annuler</button>
+      <form id="form-val-final" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="valider">
+        <button type="submit" class="btn btn-succes btn-sm">
+          <i class="fas fa-check"></i> Valider et archiver
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Rejeter dossier initial -->
+<div class="modal-overlay" id="modal-rej-initial" style="display:none;">
+  <div class="modal">
+    <div class="modal-entete">
+      <span class="modal-titre">
+        <i class="fas fa-times-circle" style="color:var(--danger)"></i> Rejeter le dossier
+      </span>
+      <button class="modal-fermer" onclick="fermerModal('modal-rej-initial')" type="button">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form id="form-rej-initial" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="rejeter">
+      <div class="modal-corps">
+        <div class="champ">
+          <label>Motif de rejet *</label>
+          <textarea name="motif" rows="3" required placeholder="Précisez le motif..."></textarea>
+        </div>
+      </div>
+      <div class="modal-pied">
+        <button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-rej-initial')">Annuler</button>
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="fas fa-paper-plane"></i> Rejeter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal : Rejeter dépôt final -->
+<div class="modal-overlay" id="modal-rej-final" style="display:none;">
+  <div class="modal">
+    <div class="modal-entete">
+      <span class="modal-titre">
+        <i class="fas fa-times-circle" style="color:var(--danger)"></i> Rejeter le dépôt final
+      </span>
+      <button class="modal-fermer" onclick="fermerModal('modal-rej-final')" type="button">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form id="form-rej-final" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="rejeter">
+      <div class="modal-corps">
+        <div class="champ">
+          <label>Motif de rejet *</label>
+          <textarea name="motif" rows="3" required placeholder="Précisez les corrections à apporter..."></textarea>
+        </div>
+        <p style="font-size:.83rem;color:var(--gris);margin-top:6px;">
+          L'étudiant sera notifié et pourra re-déposer un document corrigé.
+        </p>
+      </div>
+      <div class="modal-pied">
+        <button type="button" class="btn btn-gris btn-sm" onclick="fermerModal('modal-rej-final')">Annuler</button>
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="fas fa-paper-plane"></i> Rejeter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}
 <script>
-function prepDosVal(id, statut){
-  const msg = document.getElementById('dos-val-msg');
-  if(statut === 'depot_final_soumis'){
-    msg.innerHTML = '<p>Valider le <strong>dépôt final</strong> ? La bibliothèque sera notifiée pour indexation.</p>';
+function ouvrirModal(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.classList.add('actif');}
+function fermerModal(id){var el=document.getElementById(id);if(!el)return;el.style.display='none';el.classList.remove('actif');}
+function ouvrirValider(id, type) {
+  if (type === 'final') {
+    document.getElementById('form-val-final').action = '/chef/dossiers/' + id + '/depot-final/';
+    ouvrirModal('modal-val-final');
   } else {
-    msg.innerHTML = '<p>Valider ce dossier ? L\'étudiant sera notifié.</p>';
+    document.getElementById('form-val-initial').action = '/chef/dossiers/' + id + '/action/';
+    ouvrirModal('modal-val-initial');
   }
-  document.getElementById('form-dos-val').action='/chef/dossiers/'+id+'/action/';
-  ouvrirModal('modal-dos-val');
 }
-function prepDosRej(id){
-  document.getElementById('form-dos-rej').action='/chef/dossiers/'+id+'/action/';
-  ouvrirModal('modal-dos-rej');
+function ouvrirRejeter(id, type) {
+  if (type === 'final') {
+    document.getElementById('form-rej-final').action = '/chef/dossiers/' + id + '/depot-final/';
+    ouvrirModal('modal-rej-final');
+  } else {
+    document.getElementById('form-rej-initial').action = '/chef/dossiers/' + id + '/action/';
+    ouvrirModal('modal-rej-initial');
+  }
+}
+// Surcharger ouvrirModal pour gérer le style inline display:none
+function ouvrirModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  el.classList.add('actif');
+}
+function fermerModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'none';
+  el.classList.remove('actif');
 }
 </script>
 {% endblock %}

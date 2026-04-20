@@ -1,0 +1,165 @@
+/* STYLES GLOBAUX RÉUTILISABLES - À utiliser dans tous les templates */
+
+/* FLEX */
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-column { display: flex; flex-direction: column; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-12 { gap: 12px; }
+.gap-14 { gap: 14px; }
+.gap-16 { gap: 16px; }
+.gap-20 { gap: 20px; }
+.gap-24 { gap: 24px; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+/* SPACING */
+.mt-0 { margin-top: 0; }
+.mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-14 { margin-top: 14px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-24 { margin-top: 24px; }
+.mt-28 { margin-top: 28px; }
+.mt-32 { margin-top: 32px; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: 4px; }
+.mb-6 { margin-bottom: 6px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-14 { margin-bottom: 14px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+
+.p-8 { padding: 8px; }
+.p-10 { padding: 10px; }
+.p-12 { padding: 12px; }
+.p-16 { padding: 16px; }
+.p-20 { padding: 20px; }
+.p-24 { padding: 24px; }
+.p-28 { padding: 28px; }
+.p-30 { padding: 30px; }
+
+/* COLORS */
+.text-danger { color: #f44336; }
+.text-success { color: #4caf50; }
+.text-info { color: #2196F3; }
+.text-warning { color: #ff9800; }
+.text-muted { color: #999; }
+.text-gray { color: #666; }
+.text-secondary { color: #666; }
+.text-white { color: white; }
+
+.bg-success { background: #4caf50; }
+.bg-danger { background: #f44336; }
+.bg-info { background: #2196F3; }
+.bg-light { background: #f5f5f5; }
+.bg-white { background: white; }
+
+/* FORMS */
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="time"],
+textarea,
+select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+textarea.form-textarea-sm {
+  min-height: 40px;
+}
+
+textarea.form-textarea-md {
+  min-height: 100px;
+}
+
+textarea.form-textarea-lg {
+  min-height: 150px;
+}
+
+/* TEXT */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.font-small { font-size: 0.8rem; }
+.font-normal { font-size: 0.9rem; }
+.font-base { font-size: 1rem; }
+.font-lg { font-size: 1.1rem; }
+.font-xl { font-size: 1.3rem; }
+
+.font-bold { font-weight: 600; }
+.font-semibold { font-weight: 600; }
+
+/* DISPLAY */
+.inline { display: inline; }
+.inline-block { display: inline-block; }
+.block { display: block; }
+.hidden { display: none; }
+.overflow-auto { overflow-x: auto; }
+
+/* WIDTH & SIZING */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.max-w-600 { max-width: 600px; }
+.max-w-700 { max-width: 700px; }
+.max-w-900 { max-width: 900px; }
+.max-w-1200 { max-width: 1200px; }
+
+/* ICONS */
+.icon-sm { font-size: 0.8rem; }
+.icon-md { font-size: 1.2rem; }
+.icon-lg { font-size: 2rem; }
+
+/* UTILITY */
+.mx-auto { margin-left: auto; margin-right: auto; }
+.text-overflow { white-space: normal; word-wrap: break-word; }
+
+/* BORDER & SHADOW */
+.border { border: 1px solid #ddd; }
+.rounded { border-radius: 4px; }
+.shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.shadow-md { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .flex-responsive { flex-direction: column; }
+  .w-full { width: 100%; }
+  .p-28 { padding: 16px; }
+  .p-30 { padding: 16px; }
+}
+

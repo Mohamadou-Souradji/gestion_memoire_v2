@@ -86,123 +86,149 @@ def action_proposition(request, pk):
 @chef_requis
 def dossiers(request):
     dept = _dept(request)
-    qs = DossierSoutenance.objects.filter(etudiant__specialite__departement=dept
-        ).select_related('etudiant__specialite','proposition') if dept else DossierSoutenance.objects.none()
-    q, annee, spe, statut = (request.GET.get(k,'') for k in ['q','annee','specialite','statut'])
-    # Par défaut : en_instruction + rejete_ia + rejete_chef + depot_final_soumis
+
+    qs = DossierSoutenance.objects.filter(
+        etudiant__specialite__departement=dept
+    ).select_related('etudiant__specialite', 'proposition')
+
+    STATUT_INITIAL = [
+        DossierSoutenance.STATUT_INSTRUCTION,
+        DossierSoutenance.STATUT_REJETE_IA,
+        DossierSoutenance.STATUT_REJETE_CHEF,
+    ]
+
+    STATUT_FINAL = [
+        DossierSoutenance.STATUT_DEPOT_FINAL,
+        DossierSoutenance.STATUT_CORRECTIONS,
+    ]
+
+    statut = request.GET.get('statut', '')
+
     if not statut:
-        qs = qs.filter(statut__in=['en_instruction','rejete_ia','rejete_chef','depot_final_soumis'])
+        qs = qs.filter(statut__in=STATUT_INITIAL + STATUT_FINAL)
+    elif statut == 'initial':
+        qs = qs.filter(statut__in=STATUT_INITIAL)
+    elif statut == 'final':
+        qs = qs.filter(statut__in=STATUT_FINAL)
     elif statut != 'tous':
         qs = qs.filter(statut=statut)
-    if q: qs = qs.filter(Q(etudiant__nom__icontains=q)|Q(etudiant__prenom__icontains=q))
-    if annee: qs = qs.filter(etudiant__annee_academique=annee)
-    if spe:   qs = qs.filter(etudiant__specialite__code=spe)
-    qs = qs.order_by('-date_soumission')
-    return render(request, 'chef_departement/dossiers.html', {
-        'dossiers': qs, 'specialites': dept.specialites.all() if dept else [],
-        'statuts': DossierSoutenance.STATUT_CHOICES,
-        'f': {'q':q,'annee':annee,'specialite':spe,'statut':statut},
-    })
 
+    return render(request, 'chef_departement/dossiers.html', {
+        'dossiers': qs,
+        'specialites': dept.specialites.all(),
+        'statuts': DossierSoutenance.STATUT_CHOICES,
+    })
+    
 @login_required
 @chef_requis
 def action_dossier(request, pk):
     dept = _dept(request)
-    # On récupère le dossier sans filtrer trop strictement le statut ici
-    # pour pouvoir gérer à la fois l'instruction et le dépôt final.
+
     dossier = get_object_or_404(
-        DossierSoutenance, pk=pk,
-        etudiant__specialite__departement=dept
+        DossierSoutenance,
+        pk=pk,
+        etudiant__specialite__departement=dept,
+        statut__in=[
+            DossierSoutenance.STATUT_INSTRUCTION,
+            DossierSoutenance.STATUT_REJETE_IA,
+            DossierSoutenance.STATUT_REJETE_CHEF,
+        ]
     )
-    
+
     if request.method == 'POST':
         action = request.POST.get('action')
         motif = request.POST.get('motif', '').strip()
 
         if action == 'valider':
-            # --- CAS DU DÉPÔT FINAL (Après soutenance) ---
-            if dossier.statut == 'depot_final_soumis':
-                dossier.statut = 'archive'
-                dossier.save()
-                
-                # Notifier l'étudiant — fin de processus + info nouvelle année
-                if dossier.etudiant.user:
-                    Notification.envoyer(
-                        dossier.etudiant.user,
-                        "✓ Mémoire validé et archivé — Processus terminé",
-                        f"Félicitations {dossier.etudiant.prenom} {dossier.etudiant.nom} !\n"
-                        "Votre document final a été validé par le chef de département.\n"
-                        "Il sera prochainement indexé et publié dans la bibliothèque numérique de l'ESCEP.\n\n"
-                        "Pour reprendre le processus lors d'une nouvelle année académique, "
-                        "contactez le Directeur des études afin qu'il crée votre fiche pour la nouvelle année.",
-                        Notification.TYPE_SUCCES,
-                        '/etudiant/',
-                    )
+            dossier.statut = DossierSoutenance.STATUT_VALIDE_CHEF
+            dossier.save()
 
-                # Notifier chaque bibliothécaire avec toutes les infos
-                theme_titre = dossier.proposition.theme[:120] if dossier.proposition else '—'
-                encadreur   = dossier.proposition.encadreur if dossier.proposition else '—'
-                for biblio in User.objects.filter(role='bibliotheque'):
-                    Notification.envoyer(
-                        biblio,
-                        f"📚 Nouveau mémoire à indexer — {dossier.etudiant.nom} {dossier.etudiant.prenom}",
-                        f"Étudiant   : {dossier.etudiant.prenom} {dossier.etudiant.nom}\n"
-                        f"Matricule  : {dossier.etudiant.matricule}\n"
-                        f"Spécialité : {dossier.etudiant.specialite}\n"
-                        f"Thème      : {theme_titre}\n"
-                        f"Encadreur  : {encadreur}\n"
-                        f"Le PDF final est disponible. Cliquez pour indexer.",
-                        Notification.TYPE_INFO,
-                        '/bibliotheque/memoires/',
-                    )
-                messages.success(request, "Dépôt final validé. Étudiant et bibliothèque notifiés.")
-            
-            # --- CAS DU DOSSIER INITIAL (Avant soutenance) ---
-            else:
-                dossier.statut = 'valide_chef'
-                dossier.save()
-                if dossier.etudiant.user:
-                    Notification.envoyer(
-                        dossier.etudiant.user,
-                        "Dossier de soutenance validé ✓",
-                        "Votre dossier est conforme. Le chef de département va maintenant procéder à la proposition du jury.",
-                        Notification.TYPE_SUCCES,
-                    )
-                messages.success(request, "Dossier de soutenance validé avec succès.")
+            if dossier.etudiant.user:
+                Notification.envoyer(
+                    dossier.etudiant.user,
+                    "Dossier validé ✓",
+                    "Votre dossier est validé par le chef.",
+                    Notification.TYPE_SUCCES,
+                    '/etudiant/deposer-dossier/',
+                )
+
+            messages.success(request, "Dossier validé.")
 
         elif action == 'rejeter' and motif:
-            # Rejet du dépôt final pour corrections
-            if dossier.statut == 'depot_final_soumis':
-                dossier.statut = 'corrections'
-                dossier.motif_rejet = motif
-                dossier.save()
-                if dossier.etudiant.user:
-                    Notification.envoyer(
-                        dossier.etudiant.user,
-                        "Dépôt final rejeté — Corrections requises",
-                        f"Motif : {motif}. Veuillez corriger le document et le soumettre à nouveau.",
-                        Notification.TYPE_REJET, 
-                        '/etudiant/deposer-dossier/'
-                    )
-                messages.warning(request, "Dépôt final renvoyé pour corrections.")
-            
-            # Rejet du dossier de soutenance initial
-            else:
-                dossier.statut = 'rejete_chef'
-                dossier.motif_rejet = motif
-                dossier.save()
-                if dossier.etudiant.user:
-                    Notification.envoyer(
-                        dossier.etudiant.user, 
-                        "Dossier de soutenance rejeté",
-                        f"Motif : {motif}", 
-                        Notification.TYPE_REJET, 
-                        '/etudiant/deposer-dossier/'
-                    )
-                messages.warning(request, "Dossier de soutenance rejeté.")
+            dossier.statut = DossierSoutenance.STATUT_REJETE_CHEF
+            dossier.motif_rejet = motif
+            dossier.save()
+
+            if dossier.etudiant.user:
+                Notification.envoyer(
+                    dossier.etudiant.user,
+                    "Dossier rejeté",
+                    f"Motif : {motif}",
+                    Notification.TYPE_REJET,
+                    '/etudiant/deposer-dossier/',
+                )
+
+            messages.warning(request, "Dossier rejeté.")
 
     return redirect('chef:dossiers')
 
+@login_required
+@chef_requis
+def action_depot_final(request, pk):
+    dept = _dept(request)
+
+    dossier = get_object_or_404(
+        DossierSoutenance,
+        pk=pk,
+        etudiant__specialite__departement=dept,
+        statut__in=[
+            DossierSoutenance.STATUT_DEPOT_FINAL,
+            DossierSoutenance.STATUT_CORRECTIONS,
+        ]
+    )
+
+    if request.method != 'POST':
+        return redirect('chef:dossiers')
+
+    action = request.POST.get('action')
+    motif = request.POST.get('motif', '').strip()
+
+    # ✅ VALIDATION
+    if action == 'valider':
+        dossier.statut = DossierSoutenance.STATUT_ARCHIVE
+        dossier.save()
+
+        # notif étudiant
+        if dossier.etudiant.user:
+            Notification.envoyer(
+                dossier.etudiant.user,
+                "Mémoire validé",
+                "Votre mémoire est archivé.",
+                Notification.TYPE_SUCCES,
+                '/etudiant/',
+            )
+
+        # notif bibliothèque
+        for b in User.objects.filter(role='bibliotheque'):
+            Notification.envoyer(
+                b,
+                "Mémoire à indexer",
+                f"{dossier.etudiant.nom}",
+                Notification.TYPE_INFO,
+                '/bibliotheque/memoires/',
+            )
+
+        messages.success(request, "Archivé ✔")
+
+    # ❌ REJET
+    elif action == 'rejeter' and motif:
+        dossier.statut = DossierSoutenance.STATUT_CORRECTIONS
+        dossier.motif_rejet = motif
+        dossier.save()
+
+        messages.warning(request, "Corrections demandées.")
+
+    return redirect('chef:dossiers')
 
 # ── INSTRUIRE (jury + calendrier) ─────────────────────────
 @login_required

@@ -311,22 +311,21 @@ class PVSoutenance(models.Model):
     def __str__(self):
         return f"PV {self.dossier.etudiant} — {self.note}/20"
 
-
-def analyser_document_ia(dossier, seuil_override=None):
+def analyser_document_ia(dossier, seuil_override=None, mode='initial'):
     """
-    Lance l'analyse IA sur le PDF du dossier.
-    Met à jour dossier.taux_ia et dossier.statut.
-    Retourne (taux, details).
+    mode = 'initial' ou 'final'
     """
     from django.conf import settings as dj_settings
     from .analyse_ia import calculer_taux_ia
+
+    print(f"[IA] START dossier={dossier.id} mode={mode} statut_avant={dossier.statut}")
 
     try:
         chemin = dossier.memoire_pdf.path
         taux, details = calculer_taux_ia(chemin)
     except Exception:
         import random
-        taux   = round(random.uniform(5, 95), 1)
+        taux = round(random.uniform(5, 95), 1)
         details = {'methode': 'fallback_aleatoire'}
 
     if seuil_override is not None:
@@ -336,21 +335,31 @@ def analyser_document_ia(dossier, seuil_override=None):
             seuil = ParametreSysteme.get().taux_ia_max
         except Exception:
             seuil = getattr(dj_settings, 'AI_DETECTION_THRESHOLD', 70)
+
     dossier.taux_ia = taux
+
+    print(f"[IA] taux={taux} seuil={seuil}")
 
     if taux >= seuil:
         dossier.statut = DossierSoutenance.STATUT_REJETE_IA
         dossier.motif_rejet = (
-            f"Taux de contenu généré par IA détecté : {taux} % "
-            f"(seuil maximum autorisé : {seuil} %). "
-            "Veuillez retravailler votre document en profondeur."
+            f"Taux IA : {taux}% (seuil {seuil}%)"
         )
+        print(f"[IA] RESULT = REJETE")
     else:
-        dossier.statut = DossierSoutenance.STATUT_INSTRUCTION
+        if mode == 'initial':
+            dossier.statut = DossierSoutenance.STATUT_INSTRUCTION
+            print(f"[IA] RESULT = EN INSTRUCTION")
+        elif mode == 'final':
+            # 🔥 IMPORTANT : on ne casse pas le flux final
+            dossier.statut = DossierSoutenance.STATUT_DEPOT_FINAL
+            print(f"[IA] RESULT = DEPOT FINAL CONSERVE")
 
     dossier.save()
-    return taux, details
 
+    print(f"[IA] END statut_apres={dossier.statut}")
+
+    return taux, details
 
 class ParametreSysteme(models.Model):
     """Paramètres configurables par le DE. Singleton — pk=1."""

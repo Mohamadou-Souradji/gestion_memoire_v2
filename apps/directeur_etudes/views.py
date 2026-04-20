@@ -8,6 +8,9 @@ from apps.authentication.forms import FormulaireCreationCompte
 from apps.etudiant.models import (Departement, Etudiant, Specialite,
                                    DossierSoutenance, Notification, ParametreSysteme)
 from apps.chef_departement.models import PropositionJury
+from apps.etudiant.forms import FormulaireEtudiantDE
+import logging
+
 
 User = get_user_model()
 
@@ -103,21 +106,94 @@ def etudiants(request):
         'specialites': Specialite.objects.all(),
         'f': {'q':q,'departement':dept,'specialite':spe,'annee':annee},
     })
+import logging
+logger = logging.getLogger(__name__)
 
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 
 @login_required
 @directeur_requis
 def creer_etudiant(request):
+    from apps.etudiant.forms import FormulaireEtudiantDE
+
     if request.method == 'POST':
-        from apps.etudiant.forms import FormulaireEtudiantDE
         form = FormulaireEtudiantDE(request.POST)
+
         if form.is_valid():
-            form.save(); messages.success(request, "Étudiant ajouté.")
+            data = form.cleaned_data
+
+            # =========================
+            # 1. Vérifier email unique
+            # =========================
+            if User.objects.filter(email=data['email']).exists():
+                messages.error(request, "Cet email est déjà utilisé par un autre compte.")
+                return redirect('directeur:etudiants')
+
+            # =========================
+            # 2. Création ou mise à jour étudiant
+            # =========================
+            etudiant, created = Etudiant.objects.get_or_create(
+                matricule=data['matricule'],
+                defaults={
+                    'nom': data['nom'],
+                    'prenom': data['prenom'],
+                    'email': data['email'],
+                    'specialite': data['specialite'],
+                    'annee_academique': data['annee_academique'],
+                    'promotion': data['promotion'],
+                }
+            )
+
+            if not created:
+                etudiant.nom = data['nom']
+                etudiant.prenom = data['prenom']
+                etudiant.email = data['email']
+                etudiant.specialite = data['specialite']
+                etudiant.annee_academique = data['annee_academique']
+                etudiant.promotion = data['promotion']
+                etudiant.save()
+
+            # =========================
+            # 3. Création user si inexistant
+            # =========================
+            if not etudiant.user:
+                username = etudiant.matricule
+                password = "Student1234"
+
+                # sécurité : éviter doublon username
+                if User.objects.filter(username=username).exists():
+                    messages.error(request, "Un compte utilisateur existe déjà pour ce matricule.")
+                    return redirect('directeur:etudiants')
+
+                user = User.objects.create_user(
+                    username=username,
+                    password=password,
+                    first_name=etudiant.prenom,
+                    last_name=etudiant.nom,
+                    email=etudiant.email,
+                    role='etudiant'
+                )
+
+                etudiant.user = user
+                etudiant.save()
+
+                logger.warning(f"[USER CREATED] {username} / Student1234")
+
+            else:
+                logger.warning(f"[USER EXISTS] {etudiant.matricule}")
+
+            messages.success(
+                request,
+                f"Étudiant enregistré : {etudiant.nom} {etudiant.prenom} | login = {etudiant.matricule}"
+            )
+
         else:
-            for e in form.errors.values(): messages.error(request, e.as_text())
+            for e in form.errors.values():
+                messages.error(request, e)
+
     return redirect('directeur:etudiants')
-
-
 @login_required
 @directeur_requis
 def modifier_etudiant(request, pk):

@@ -1,10 +1,2 @@
-<script>
-function ouvrirModal(id){document.getElementById(id).classList.add('actif');}
-function fermerModal(id){document.getElementById(id).classList.remove('actif');}
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.modal-overlay').forEach(m=>{
-    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('actif');});
-  });
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.actif').forEach(m=>m.classList.remove('actif'));});
-});
-</script>
+{# Les fonctions ouvrirModal/fermerModal sont déclarées dans shared/base.html #}
+{# Ce fichier est conservé pour compatibilité des includes existants #}

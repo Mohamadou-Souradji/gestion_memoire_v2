@@ -11,11 +11,12 @@ __pycache__/
 venv/
 env/
 .venv/
-
+build/
 # Django
 db.sqlite3
 staticfiles/
 media/
+config/
 *.log
 
 # IDE
@@ -27,3 +28,5 @@ media/
 
 # Docker
 docker-compose.override.yml
+Dockerfile
+

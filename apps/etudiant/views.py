@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
+from .models import ParametreSysteme as PS
 from difflib import SequenceMatcher
 import re
 from apps.authentication.decorators import etudiant_requis
@@ -107,26 +108,58 @@ def tableau_de_bord(request):
 @etudiant_requis
 def verifier_matricule(request):
     try:
-        if request.user.fiche_etudiant:
+        etudiant = request.user.fiche_etudiant
+
+        # 🔴 SI CYCLE TERMINÉ → ON RESTE ICI (PAS DE REDIRECT)
+        dernier_dossier = etudiant.dossiers.order_by('-date_soumission').first()
+
+        if dernier_dossier and dernier_dossier.statut == DossierSoutenance.STATUT_ARCHIVE:
+            messages.info(
+                request,
+                "Votre ancien cycle est terminé. Veuillez revérifier votre matricule pour démarrer un nouveau cycle."
+            )
+            # on laisse accès à la page
+        else:
+            # sinon on redirige normalement
             return redirect('etudiant:proposer_theme')
+
     except Exception:
         pass
-    formulaire = FormulaireVerificationMatricule(request.POST or None)
-    if request.method == 'POST' and formulaire.is_valid():
-        mat   = formulaire.cleaned_data['matricule']
-        annee = formulaire.cleaned_data['annee_academique']
-        try:
-            etudiant = Etudiant.objects.get(matricule=mat, annee_academique=annee, user__isnull=True)
-            etudiant.user = request.user; etudiant.save()
-            messages.success(request, f"Bienvenue {etudiant.prenom} {etudiant.nom} ! Fiche trouvée — {etudiant.specialite}.")
-            return redirect('etudiant:proposer_theme')
-        except Etudiant.DoesNotExist:
-            if Etudiant.objects.filter(matricule=mat, annee_academique=annee).exists():
-                messages.error(request, "Ce matricule est déjà associé à un autre compte.")
-            else:
-                messages.error(request, "Aucun étudiant trouvé. Vérifiez votre matricule et l'année académique.")
-    return render(request, 'etudiant/verifier_matricule.html', {'formulaire': formulaire})
 
+    formulaire = FormulaireVerificationMatricule(request.POST or None)
+
+    if request.method == 'POST' and formulaire.is_valid():
+
+        mat = formulaire.cleaned_data['matricule']
+        annee = formulaire.cleaned_data['annee_academique']
+
+        try:
+            etudiant = Etudiant.objects.get(
+                matricule=mat,
+                annee_academique=annee,
+                user__isnull=True
+            )
+
+            etudiant.user = request.user
+            etudiant.save()
+
+            messages.success(
+                request,
+                f"Bienvenue {etudiant.prenom} {etudiant.nom} !"
+            )
+
+            return redirect('etudiant:proposer_theme')
+
+        except Etudiant.DoesNotExist:
+
+            if Etudiant.objects.filter(matricule=mat, annee_academique=annee).exists():
+                messages.error(request, "Ce matricule est déjà utilisé.")
+            else:
+                messages.error(request, "Aucun étudiant trouvé.")
+
+    return render(request, 'etudiant/verifier_matricule.html', {
+        'formulaire': formulaire
+    })
 
 @login_required
 @etudiant_requis
@@ -181,139 +214,180 @@ def proposer_theme(request):
 
     return render(request, 'etudiant/proposer_theme.html',
                   {'formulaire': formulaire, 'etudiant': etudiant})
+import logging
+logger = logging.getLogger(__name__)
+
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+import logging
+
+logger = logging.getLogger(__name__)
+
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 
 
 @login_required
 @etudiant_requis
 def deposer_dossier(request):
-    """Dépôt avant soutenance ET dépôt final après PV — même page."""
+    from .models import ParametreSysteme as PS
+
+    # =========================
+    # ETUDIANT
+    # =========================
     try:
         etudiant = request.user.fiche_etudiant
+        logger.warning(f"[ETUDIANT] id={etudiant.id} nom={etudiant.nom}")
     except Exception:
+        logger.error("[ERREUR] fiche_etudiant introuvable")
         return redirect('etudiant:verifier_matricule')
 
+    # =========================
+    # PROPOSITION VALIDÉE
+    # =========================
     prop_validee = etudiant.propositions.filter(statut='valide').first()
+
     if not prop_validee:
-        messages.warning(request, "Vous devez avoir une proposition validée avant de déposer un dossier.")
+        messages.warning(request, "Proposition non validée.")
         return redirect('etudiant:tableau_de_bord')
 
-    # Chercher dossier existant
+    # =========================
+    # DOSSIER ACTIF
+    # =========================
     dossier_actif = etudiant.dossiers.order_by('-date_soumission').first()
-    pv = None
-    if dossier_actif:
-        try: pv = dossier_actif.pv
-        except: pass
+    pv = getattr(dossier_actif, 'pv', None) if dossier_actif else None
 
-    # Si PV saisi → mode dépôt final
-    # Inclure STATUT_REJETE_IA ici car si le PDF final est rejeté par IA,
-    # le statut repasse à rejete_ia mais le PV existe → on reste en mode final
+    # =========================
+    # BLOQUAGE ARCHIVE (IMPORTANT)
+    # =========================
+    if dossier_actif and dossier_actif.statut == DossierSoutenance.STATUT_ARCHIVE:
+        messages.error(
+            request,
+            "Votre cycle est terminé. Veuillez revérifier votre matricule pour commencer un nouveau cycle."
+        )
+        return redirect('etudiant:verifier_matricule')
+
+    # =========================
+    # BLOQUAGE GLOBAL
+    # =========================
+    if dossier_actif and dossier_actif.statut not in [
+        DossierSoutenance.STATUT_REJETE_IA,
+        DossierSoutenance.STATUT_REJETE_CHEF,
+        DossierSoutenance.STATUT_CORRECTIONS,
+    ]:
+        messages.info(request, "Vous avez déjà un dossier en cours.")
+        return redirect('etudiant:tableau_de_bord')
+
+    # =========================
+    # MODE FINAL
+    # =========================
     if dossier_actif and pv and dossier_actif.statut in [
-            DossierSoutenance.STATUT_SOUTENU,
-            DossierSoutenance.STATUT_CORRECTIONS,
-            DossierSoutenance.STATUT_REJETE_IA,
-            'depot_final_soumis']:
+        DossierSoutenance.STATUT_SOUTENU,
+        DossierSoutenance.STATUT_CORRECTIONS,
+        DossierSoutenance.STATUT_DEPOT_FINAL,
+    ]:
 
         formulaire_final = FormulaireDepotFinal(
-            request.POST or None, request.FILES or None, instance=dossier_actif)
+            request.POST or None,
+            request.FILES or None,
+            instance=dossier_actif
+        )
 
         if request.method == 'POST' and request.POST.get('mode') == 'final':
+
             if formulaire_final.is_valid():
-                # Analyse IA du document final
-                dossier_tmp = formulaire_final.save(commit=False)
-                dossier_tmp.statut = 'depot_final_soumis'
-                dossier_tmp.save()
+                dossier = formulaire_final.save(commit=False)
+                dossier.statut = DossierSoutenance.STATUT_DEPOT_FINAL
+                dossier.save()
 
-                from .models import ParametreSysteme as PS
-                seuil_ia = PS.get().taux_ia_max
-                taux, _ = analyser_document_ia(dossier_tmp, seuil_override=seuil_ia)
+                seuil = PS.get().taux_ia_max
 
-                if dossier_tmp.statut == DossierSoutenance.STATUT_REJETE_IA:
-                    # Rejet IA dépôt final : remettre en CORRECTIONS pour re-dépôt
-                    dossier_tmp.statut = DossierSoutenance.STATUT_CORRECTIONS
-                    dossier_tmp.save()
-                    messages.error(request,
-                        f"Document final rejeté automatiquement — taux IA : {taux}% "
-                        f"(seuil autorisé : {seuil}%). Corrigez votre document et re-déposez.")
+                taux, _ = analyser_document_ia(
+                    dossier,
+                    seuil_override=seuil,
+                    mode='final'
+                )
+
+                logger.warning(f"[IA FINAL] taux={taux}")
+
+                # REJET IA FINAL
+                if dossier.statut == DossierSoutenance.STATUT_REJETE_IA:
+                    dossier.statut = DossierSoutenance.STATUT_CORRECTIONS
+                    dossier.save()
+
+                    messages.error(
+                        request,
+                        "Document rejeté par l’IA. "
+                        f"Taux détecté : {taux}% (seuil max : {seuil}%). "
+                        "Veuillez corriger votre document."
+                    )
+
                     return redirect('etudiant:deposer_dossier')
-                else:
-                    # Notifier le chef pour validation
-                    chef = etudiant.chef_departement
-                    if chef:
-                        Notification.envoyer(chef,
-                            "Dépôt final à valider",
-                            f"{etudiant.prenom} {etudiant.nom} a déposé son document final "
-                            f"(taux IA : {taux}%). Validation requise avant indexation.",
-                            Notification.TYPE_INFO, '/chef/dossiers/')
-                    messages.success(request, f"Document final soumis (taux IA : {taux}%). En attente de validation du chef.")
-                    return redirect('etudiant:deposer_dossier')
+
+                messages.success(request, "Document final soumis.")
+                return redirect('etudiant:tableau_de_bord')
 
         return render(request, 'etudiant/deposer_dossier.html', {
             'mode': 'final',
             'formulaire_final': formulaire_final,
             'dossier': dossier_actif,
             'pv': pv,
-            'seuil_ia': PS.get().taux_ia_max if 'PS' in dir() else 10,
+            'seuil_ia': PS.get().taux_ia_max,
         })
 
-    # Vérifier qu'un dossier actif n'existe pas déjà (hors rejeté/archivé)
-    if dossier_actif and dossier_actif.statut not in [
-            DossierSoutenance.STATUT_REJETE_IA,
-            DossierSoutenance.STATUT_REJETE_CHEF,
-            DossierSoutenance.STATUT_ARCHIVE,
-            DossierSoutenance.STATUT_CORRECTIONS,  # rejet dépôt final → re-déposer
-            DossierSoutenance.STATUT_SOUTENU,       # soutenu → dépôt final
-            'depot_final_soumis',                   # déjà soumis → informer
-            ]:
-        messages.info(request, "Vous avez déjà un dossier en cours.")
-        return redirect('etudiant:tableau_de_bord')
+    # =========================
+    # MODE INITIAL
+    # =========================
+    formulaire = FormulaireDossierSoutenance(
+        request.POST or None,
+        request.FILES or None
+    )
 
-    # Si archivé, vérifier qu'une nouvelle fiche étudiant existe pour une nouvelle année
-    if dossier_actif and dossier_actif.statut == DossierSoutenance.STATUT_ARCHIVE:
-        # Permettre seulement si l'étudiant a une fiche avec une année académique différente
-        if dossier_actif.etudiant.annee_academique == etudiant.annee_academique:
-            messages.warning(request,
-                "Vous avez déjà complété le processus pour l'année "
-                f"{etudiant.annee_academique}. Pour recommencer, votre fiche "
-                "doit être mise à jour avec une nouvelle année académique par l'administration.")
+    if request.method == 'POST' and request.POST.get('mode') == 'initial':
+
+        if formulaire.is_valid():
+
+            dossier = formulaire.save(commit=False)
+            dossier.etudiant = etudiant
+            dossier.proposition = prop_validee
+            dossier.statut = DossierSoutenance.STATUT_ANALYSE_IA
+            dossier.save()
+
+            seuil = PS.get().taux_ia_max
+
+            taux, _ = analyser_document_ia(
+                dossier,
+                seuil_override=seuil,
+                mode='initial'
+            )
+
+            logger.warning(f"[IA INITIAL] taux={taux}")
+
+            # REJET IA INITIAL
+            if dossier.statut == DossierSoutenance.STATUT_REJETE_IA:
+                dossier.statut = DossierSoutenance.STATUT_CORRECTIONS
+                dossier.save()
+
+                messages.error(
+                    request,
+                    "Dossier rejeté par l’IA. "
+                    f"Taux détecté : {taux}% (seuil max : {seuil}%). "
+                    "Veuillez corriger votre fichier."
+                )
+
+                return redirect('etudiant:deposer_dossier')
+
+            messages.success(request, "Dossier soumis avec succès.")
             return redirect('etudiant:tableau_de_bord')
-
-    from .models import ParametreSysteme as PS
-    seuil = PS.get().taux_ia_max
-    formulaire = FormulaireDossierSoutenance(request.POST or None, request.FILES or None)
-
-    if request.method == 'POST' and request.POST.get('mode') == 'initial' and formulaire.is_valid():
-        dossier = formulaire.save(commit=False)
-        dossier.etudiant    = etudiant
-        dossier.proposition = prop_validee
-        dossier.statut      = DossierSoutenance.STATUT_ANALYSE_IA
-        dossier.save()
-
-        taux, _ = analyser_document_ia(dossier)
-
-        if dossier.statut == DossierSoutenance.STATUT_REJETE_IA:
-            Notification.envoyer(request.user,
-                "Dossier rejeté — taux IA trop élevé",
-                dossier.motif_rejet, Notification.TYPE_REJET, '/etudiant/deposer-dossier/')
-            messages.error(request, f"Dossier rejeté. Taux IA : {taux}% (seuil : {seuil}%).")
-        else:
-            chef = etudiant.chef_departement
-            if chef:
-                Notification.envoyer(chef,
-                    "Nouveau dossier à instruire",
-                    f"{etudiant.prenom} {etudiant.nom} — {etudiant.specialite} — "
-                    f"taux IA : {taux}%.",
-                    Notification.TYPE_INFO, '/chef/dossiers/')
-            messages.success(request, f"Dossier soumis. Taux IA : {taux}%. En attente de validation.")
-        return redirect('etudiant:tableau_de_bord')
 
     return render(request, 'etudiant/deposer_dossier.html', {
         'mode': 'initial',
         'formulaire': formulaire,
         'proposition': prop_validee,
-        'seuil_ia': seuil,
+        'seuil_ia': PS.get().taux_ia_max,
     })
-
-
 @login_required
 @etudiant_requis
 def bibliotheque(request):

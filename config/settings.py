@@ -10,12 +10,11 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- SÉCURITÉ ---
-SECRET_KEY = os.environ.get('SECRET_KEY', config('SECRET_KEY', default='unsafe-dev-key'))
+SECRET_KEY = config('SECRET_KEY', default='unsafe-dev-key')
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-
-# Gestion dynamique des hôtes autorisés pour Render
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# Gestion dynamique des hôtes autorisés
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -29,7 +28,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'widget_tweaks',
-    # Apps ESCEP
     'apps.authentication',
     'apps.etudiant',
     'apps.chef_departement',
@@ -42,7 +40,7 @@ INSTALLED_APPS = [
 # --- MIDDLEWARE ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Pour les fichiers statiques sur Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -72,43 +70,63 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# --- BASE DE DONNÉES ---
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+# --- BASE DE DONNÉES (Hybride Local/Render) ---
+if os.environ.get('DATABASE_URL'):
+    # Configuration pour RENDER
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # Configuration pour LOCAL (Docker)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME':     config('DB_NAME'),
+            'USER':     config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST':     config('DB_HOST', default='db'),
+            'PORT':     config('DB_PORT', default='5432'),
+        }
+    }
 
 # --- AUTHENTICATION ---
 AUTH_USER_MODEL = 'authentication.User'
-LOGIN_URL           = '/auth/connexion/'
-LOGIN_REDIRECT_URL  = '/'
+LOGIN_URL = '/auth/connexion/'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/auth/connexion/'
 
 # --- PARAMÈTRES ESCEP ---
 OTP_VALIDITY_MINUTES = 10
 AI_DETECTION_THRESHOLD = config('AI_DETECTION_THRESHOLD', default=70, cast=int)
+ZEROGPT_API_KEY = config('ZEROGPT_API_KEY', default='')
+
 # --- EMAIL ---
-# On lit d'abord les variables d'environnement de Render, sinon on utilise les valeurs par défaut
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'))
-EMAIL_HOST = os.environ.get('EMAIL_HOST', config('EMAIL_HOST', default='smtp.gmail.com'))
-EMAIL_PORT = os.environ.get('EMAIL_PORT', config('EMAIL_PORT', default=587, cast=int))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', config('EMAIL_USE_TLS', default=True, cast=bool))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', config('EMAIL_HOST_USER', default=''))
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', config('EMAIL_HOST_PASSWORD', default=''))
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', config('DEFAULT_FROM_EMAIL', default='ESCEP Niger <souradjimohamadou@gmail.com>'))
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='ESCEP Niger <noreply@escep.ne>')
+
 # --- FICHIERS STATIQUES ET MEDIA ---
-STATIC_URL  = '/static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL  = '/media/'
+# Affichage CSS : WhiteNoise compressé seulement en production
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Cloudinary pour la production (Stockage des PDFs des mémoires)
+# --- CLOUDINARY ---
 CLOUDINARY_STORAGE_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
 if CLOUDINARY_STORAGE_NAME:
     CLOUDINARY_STORAGE = {
@@ -124,17 +142,25 @@ if CLOUDINARY_STORAGE_NAME:
 if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [f"https://{h.strip()}" for h in ALLOWED_HOSTS if h.strip()]
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
+
 # --- INTERNATIONALISATION ---
 LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE     = 'Africa/Niamey'
+TIME_ZONE = 'Africa/Niamey'
 USE_I18N = True
-USE_TZ   = True
+USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
